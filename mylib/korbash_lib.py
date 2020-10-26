@@ -131,7 +131,13 @@ class ReadingDevise():
         t = 0
         i = 0
         while t <= tau:
-            weight = self.pr.read() * self.weightCoef - self.zeroWeight
+            x = self.pr.read()
+            if x == 'problem':
+                # for k in range(10):
+                #     x = self.pr.read()
+                return 'problem'
+            else:
+                weight = x * self.weightCoef - self.zeroWeight
             DataBase.Wright({'tension': weight}, inExsist)
             t = Time.time() - t0
             i += 1
@@ -419,7 +425,7 @@ class MotorSystem():
             motR = simulator.motorR
             motM = simulator.motorM
         else:
-            # print(apt.list_available_devices())
+            print(dr.motor.list_available_devices())
             motL = dr.motor(90113196)
             motR = dr.motor(90113195)
             motM = dr.motor(90113197)
@@ -762,9 +768,18 @@ class MotorSystem():
             return False
 
     def Test(self):
+        print('motorR test')
         self.motorR.Test()
+        while self.IsInMotion(all=True):
+            pass
+        print('motorL test')
         self.motorL.Test()
+        while self.IsInMotion(all=True):
+            pass
+        print('motorM test')
         self.motorM.Test()
+        while self.IsInMotion(all=True):
+            pass
 
     def Clear(self, n=-1):
         self.motorR.Clear(n)
@@ -782,8 +797,8 @@ class Puller():
             pm = self.sim.pm
         else:
             self.sim = None
-            tg = dr.tensionGauge
-            pm = dr.powerMeter
+            tg = dr.tensionGauge()
+            pm = dr.powerMeter()
         self.tg = ReadingDevise(tg, weightCoef=-0.0075585384235655265)
         self.pm = ReadingDevise(pm, weightCoef=1000)
         self.ms = MotorSystem(simulate=simulate, simulator=self.sim)
@@ -901,7 +916,7 @@ class Puller():
             while self.ms.motorM.IsInMotion():
                 pass
             Time.sleep(1)
-            a, b, x0, data = self.SetH(xStart=xStart, xFin=xFin, v=v2, quiet=quiet, x0=x0, a=a, b=b)
+            x0, a, b, data = self.SetH(xStart=xStart, xFin=xFin, v=v2, quiet=quiet, x0=x0, a=a, b=b)
             fitData.loc[i] = [a, b, x0]
         self.Save(fitData, r'C:\Users\Fiber\Desktop\table_control_data\hM_T')
         x0 = fitData['x0'].mean()
@@ -920,8 +935,13 @@ class Puller():
 
         def errorFun(data_loc, a, b, x0):
             f = get_f(a, b, x0)
-            data_loc['error'] = (data_loc['x'].apply(f) - data_loc['T']) ** 2
+            data_loc['error'] = (data_loc['motorM'].apply(f) - data_loc['tension']) ** 2
             return sum(data_loc['error'])
+
+        # def f(x):
+        #     err = errorFun(data, x[0], x[1], x[2])
+        #     print(err)
+        #     return err
 
         T0 = self.tg.ReadValue(tau=2)
         b = T = T0
@@ -933,26 +953,27 @@ class Puller():
             DataBase.Wright({'motorM': self.ms.motorM.Getposition()}, inExsist=True)
         self.ms.Stop('M')
         # print(i)
-        # print("aaa")
-        # Time.sleep(2)
         self.ms.motorM.FogotMotion()
-        # print("bbb")
         self.ms.Start('M')
-        x0 = self.ms.motorM.Getposition(analitic=True) + 0.5
+        x0 = self.ms.motorM.Getposition(analitic=True) + 1
         # print(x0)
-        self.ms.motorM.MoveTo(x0 + 1)
+        self.ms.motorM.MoveTo(x0 + 1.5)
         data = DataBase.data.loc[range(DataBase.l - i, DataBase.l), ['time', 'tension', 'motorM']].copy()
-        # print(data)
+        data.reset_index(drop=True, inplace=True)
+        #print(data)
+        #print(errorFun(data, a, b, x0))
         DataBase.Clear(-i)
-        resalt = optimize.fmin(lambda x: errorFun(data, x[0], x[1], x[2]), np.array([a, b, x0]), disp=False)
+        print("SetH_podgon", np.array([a, b, x0]))
+        resalt = optimize.fmin(lambda x: errorFun(data, x[0], x[1], x[2]), np.array([a, b, x0]), disp=False)  # errorFun(data, x[0], x[1], x[2])
         a = resalt[0]
         b = resalt[1]
         x0 = resalt[2]
         print('podgon', 'a=', a, '  b=', b, '  x0=', x0)
-        data['time'] = data['time'] - data['time'][0]
-        data['fit'] = data['x'].apply(get_f(a, b, x0))
+        # data['time'] = data['time'] - data['time'][0]
+        data['fit'] = data['motorM'].apply(get_f(a, b, x0))
         if not quiet:
-            dp = PlotDisplayer(mainParam='x', pl1=data[['x', 'error']], pl2=data[['x', 'T', 'fit']])
+            dp = PlotDisplayer(mainParam='motorM', pl1=data[['motorM', 'error']],
+                               pl2=data[['motorM', 'tension', 'fit']])
             dp.Show()
         return x0, a, b
 
@@ -968,7 +989,7 @@ class Puller():
 
         def errorFun(data_loc, a, b, x0):
             f = get_f(a, b, x0)
-            data_loc['error'] = (data_loc['x'].apply(f) - data_loc['T']) ** 2
+            data_loc['error'] = (data_loc['motorM'].apply(f) - data_loc['tension']) ** 2
             return sum(data_loc['error'])
 
         i = 0
@@ -982,21 +1003,23 @@ class Puller():
         while self.ms.motorM.IsInMotion():
             i += 1
             self.tg.ReadValue()
-            self.ms.motorM.Getposition()
+            DataBase.Wright({'motorM': self.ms.motorM.Getposition()}, inExsist=True)
         data = DataBase.data.loc[range(DataBase.l - i, DataBase.l), ['time', 'tension', 'motorM']].copy()
+        data.reset_index(drop=True, inplace=True)
         DataBase.Clear(-i)
 
         resalt = optimize.fmin(lambda x: errorFun(data, x[0], x[1], x[2]), np.array([a, b, x0]), disp=False)
         a = resalt[0]
         b = resalt[1]
         x0 = resalt[2]
-        print('a=', a, '  b=', b, '  x0=', x0)
+        print('podgon', 'a=', a, '  b=', b, '  x0=', x0)
         # data['time'] = data['time'] - data['time'][0]
-        data['fit'] = data['x'].apply(get_f(a, b, x0))
+        data['fit'] = data['motorM'].apply(get_f(a, b, x0))
         if not quiet:
-            dp = PlotDisplayer(mainParam='x', pl1=data[['x', 'error']], pl2=data[['x', 'T', 'fit']])
+            dp = PlotDisplayer(mainParam='motorM',
+                               pl1=data[['motorM', 'error']], pl2=data[['motorM', 'tension', 'fit']])
             dp.Show()
-        return a, b, x0, data
+        return  x0, a, b, data
 
     # def Clear(self, n=-1):
     #     self.ms.Clear(n)
@@ -1010,9 +1033,9 @@ class Puller():
     def Test(self):
         print('tg test:')
         self.tg.Test()
-        print('/npm test:')
+        print('\npm test:')
         self.pm.Test()
-        print('/nms test:')
+        print('\nms test:')
         self.ms.Test()
 
     # def GetTime(self, memory=True):
@@ -1515,7 +1538,7 @@ class DataBase():
                 if n > 0:
                     mas = range(0, n)
         DataBase.data.drop(mas, inplace=True)
-        DataBase.data.reset_index(drop=True)
+        DataBase.data.reset_index(drop=True, inplace=True)
         DataBase.l = DataBase.data.shape[0]
         if DataBase.l == 0:
             DataBase.data = pd.DataFrame()

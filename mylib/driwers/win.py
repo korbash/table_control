@@ -4,9 +4,10 @@ from ctypes import c_uint32, byref, create_string_buffer, c_bool, c_int, c_doubl
 import serial
 import time
 
+
 class motor(apt.Motor):
     def __init__(self, motor_id):
-        self.__init__(motor_id)
+        apt.Motor.__init__(self, motor_id)
         self.backlash_distance = 0.0
         self.set_hardware_limit_switches(2, 1)
         self.set_move_home_parameters(2, 1, 1.0, 0.5)
@@ -15,7 +16,7 @@ class motor(apt.Motor):
         self.disable()
 
     def list_available_devices():
-        apt.list_available_devices()
+        return apt.list_available_devices()
 
 
 class powerMeter(TLPM):
@@ -49,7 +50,7 @@ class powerMeter(TLPM):
         self.getRsrcName(c_int(0), deviceName)
         return deviceName.value
 
-    def Read(self):
+    def read(self):
         power = c_double()
         self.measPower(byref(power))
         return power.value
@@ -84,12 +85,12 @@ class tensionGauge():
         i = 0
         while len(string) < 3:
             t0 = time.time()
-            while self.simFlag == False and self.port.in_waiting == 0:
-                if time.time() - t0 > 1:
-                    print('tg read woiting problem')
+            while self.port.in_waiting == 0:
+                if time.time() - t0 > 2:
+                    print('tg read waiting problem')
                     return 'problem'
-            else:
-                string = self.port.readline()
+            string = self.port.readline()
+            # print(string)
             if len(string) < 3:
                 i += 1
                 if i > 10:
