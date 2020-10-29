@@ -1,9 +1,6 @@
-from korbash_lib import Puller, PlotDisplayer, Slider, sglad, Time
-import korbash_lib
+from korbash_lib import Puller, sglad, Time, DataBase
 import pandas as pd
 import numpy as np
-import time
-from bokeh.io import show
 import matplotlib.pyplot as plt
 
 Time.SetZeroTime()
@@ -25,8 +22,11 @@ for i in range(100):
                               dhKof=0.5, ah=9) == -1:
         break
     Time.sleep(0.1)
-pl.data[['tension', 'tensionWgl', 'tensionEXPgl']].plot()
+pl.data[['tensionEXPgl','tensionWgl', 'tension']].plot()
+# DataBase.data[['tension', 'tensionWgl', 'tensionEXPgl']].plot()
 plt.show(block=True)
 # dp = PlotDisplayer()
 # dp.CreateMaket(mainParam='time', tension=pl.data[['time', 'tension', 'tensionWgl', 'tensionEXPgl']])
 # show(dp.grid)
+print(pl.data)
+2 + 2

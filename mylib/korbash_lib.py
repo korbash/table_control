@@ -1,4 +1,3 @@
-
 import os
 import numpy as np
 import time
@@ -8,16 +7,29 @@ from IPython import display
 from ipywidgets import widgets
 from IPython.display import display
 from datetime import datetime
-# from newport import Controller
 import PySimpleGUI as sg
 import pandas as pd
-from bokeh.io import show
-from bokeh.plotting import figure
-from bokeh.layouts import layout
 from scipy import optimize
 from scipy.integrate import cumtrapz
 from scipy.interpolate import interp1d
+from visualization import PlotDisplayer, Slider
 import driwers as dr
+
+
+# переделать стоп button
+def Save(data, dirSubName, name, dirName='C:\\Users\\Fiber\\Desktop\\table_control_data'):
+    q = datetime.today()
+    date = str(q.year) + '_' + str(q.month) + '_' + str(q.day) + '__' + str(q.hour) + '_' + str(q.minute)
+    dirSubName = dirSubName.replace('DATE', date)
+    name = name.replace('DATE', date)
+    st = dirName + '\\' + dirSubName
+    if not os.path.exists(st):
+        os.mkdir(st)
+    st = st + '\\' + name
+    if os.path.exists(st):
+        st += '(1)'
+    data.to_csv(st, index=False)
+    print('data saved')
 
 
 def Everage(x, t, tau=1):
@@ -115,10 +127,11 @@ def Vdiff(R, L):
 
 
 class ReadingDevise():
-    def __init__(self, pr, weightCoef=-0.0075585384235655265, zeroWeight=0):
+    def __init__(self, pr, name, weightCoef, zeroWeight=0):
         self.zeroWeight = zeroWeight
         self.weightCoef = weightCoef
         self.pr = pr
+        self.name = name
 
     def __del__(self):
         del self.pr
@@ -130,21 +143,19 @@ class ReadingDevise():
         while t <= tau:
             x = self.pr.read()
             if x == 'problem':
-                # for k in range(10):
-                #     x = self.pr.read()
                 return 'problem'
             else:
                 weight = x * self.weightCoef - self.zeroWeight
-            DataBase.Wright({'tension': weight}, inExsist)
+            DataBase.Wright({self.name: weight}, inExsist)
             t = Time.time() - t0
             i += 1
         j = 1
         while DataBase.l - i - j >= 0 and DataBase.data.loc[DataBase.l - i - j, 'time'] > t0 - lastTau:
             j += 1
         j -= 1
-        weight = DataBase.data.loc[range(DataBase.l - i - j, DataBase.l), 'tension'].mean()
-        if not memory:
-            DataBase.Clear(-i)
+        weight = DataBase.data.loc[range(DataBase.l - i - j, DataBase.l), self.name].mean()
+        # if (not memory) or inExsist:
+        #     DataBase.Clear(-i)  # переделать
         return weight
 
     def SetCoefficient(self, real_weight, tau=10):  # не проверена
@@ -796,18 +807,17 @@ class Puller():
             self.sim = None
             tg = dr.tensionGauge()
             pm = dr.powerMeter()
-        self.tg = ReadingDevise(tg, weightCoef=-0.0075585384235655265)
-        self.pm = ReadingDevise(pm, weightCoef=1000)
+        self.tg = ReadingDevise(tg, 'tension', weightCoef=-0.0075585384235655265)
+        self.pm = ReadingDevise(pm, 'power', weightCoef=1000)
         self.ms = MotorSystem(simulate=simulate, simulator=self.sim)
-        self.t0 = Time.time()
-        self.tPoints = np.array([])
+        self.Ttrend = 0
+        self.dT_last = 0
+        self.dV_last = 0
+        self.trueKmas = np.array([])
+        self.Clear()
 
         self.VdifRec = 0
-        self.data = pd.DataFrame(
-            columns=['time', 'tension', 'tensionWgl', 'tensionEXPgl', 'power', 'motorL', 'motorR', 'motorM', 'dt',
-                     'pressure', 'x', 'L', 'vL', 'vR',
-                     'vM', 'aL', 'aR', 'aM', 'VdifRec'])
-        self.dataLen = 0
+
         self.sg = sglad(0.08, 0.2)
 
         '''self.Slider = {}
@@ -818,58 +828,64 @@ class Puller():
         del self.pm
         del self.tg
 
+    def Clear(self):
+        self.data = pd.DataFrame(
+            columns=['time', 'tension', 'power', 'motorL', 'motorR', 'motorM', 'dt', 'x', 'vL', 'vR', 'vM', 'VdifRec',
+                     'tensionWgl', 'tensionEXPgl'])
+
     def Read(self, motoL=True, motoR=True, motoM=True):
         param = {}
-        # param2 = {}
-        if self.dataLen == 0: self.t0 = Time.time()
-
-        tSt = Time.time() - self.t0
-        if self.ms.motorM: param['motorM'] = self.ms.motorM.Getposition(memory=False)
-        param['power'] = self.pm.ReadValue() / 2
-        param['tension'] = self.tg.ReadValue(memory=False) / 2
-        if self.ms.motorL: param['motorL'] = self.ms.motorL.Getposition(memory=False) / 2
-        if self.ms.motorR: param['motorR'] = self.ms.motorR.Getposition(memory=False)
-        if self.ms.motorL: param['motorL'] += self.ms.motorL.Getposition(memory=False) / 2
-        param['tension'] += self.tg.ReadValue(memory=False) / 2
-        param['power'] += self.pm.ReadValue() / 2
-        tFn = Time.time() - self.t0
+        tSt = Time.time()
+        param['motorL'] = self.ms.motorL.Getposition()
+        param['motorR'] = self.ms.motorR.Getposition()
+        param['motorM'] = self.ms.motorM.Getposition()
+        param['power'] = self.pm.ReadValue()
+        param['tension'] = self.tg.ReadValue(inExsist=True)
+        tFn = Time.time()
         param['dt'] = tFn - tSt
-        param['time'] = (tSt + tFn) / 2
         param['x'], param['L'] = self.ms.calcX_L()
-
         param['vL'], param['aL'] = self.ms.motorL.calcX_V_A()[1: 3]
         param['vR'], param['aR'] = self.ms.motorR.calcX_V_A()[1: 3]
         param['vM'], param['aM'] = self.ms.motorM.calcX_V_A()[1: 3]
-
-        # tW, tE = self.sg.New(param['tension'], param['vL'], progn=50, jastPoint=True)
-        # if tW != None: param2['tensionWgl'] = tW
-        # if tE != None: param2['tensionEXPgl'] = tE
-
         param['pressure'] = param['tension'] * self.ms.R_x(0) ** 2 / self.ms.R_x(param['x']) ** 2
         param['VdifRec'] = Vdiff(self.ms.R_x(param['x']), self.ms.L_x(param['x']))
-        # if self.dataLen > 1 and pd.isnull(self.data['tension'].iloc[-1]):
-        #     self.Clear2(1)
-        self.data.loc[self.dataLen] = param
-        self.dataLen += 1
+        param['time'] = Time.time()
+        self.sg.New(param['tension'], param['vL'])
+        # DataBase.Wright(param, inExsist=True)
+        # DataBase.Apdete()
+        self.data.loc[len(self.data)] = param
 
-        # self.data.loc[]
-        self.data['tensionWgl'] = self.sg.wGl
-        self.data['tensionEXPgl'] = self.sg.expGl
-        # if self.sg.expGl.size > 1:
-        #     dt = (param['time'] - self.data['time'].iloc[-10]) / 10
-        #     tNew = param['time'] + dt * 50
-        #     T1 = self.data['tensionEXPgl'].iloc[-2]
-        #     T2 = self.data['tensionEXPgl'].iloc[-1]
-        #     Tnew = T1 + (T2 - T1) * (50 + 1)
-        #     self.data.loc[self.dataLen] = {'time': tNew, 'tensionEXPgl': Tnew}
+        if self.sg.expGl.size > 1:
+            dt = (param['time'] - self.data['time'].iloc[-10]) / 10
+            self.Ttrend = self.sg.trend / dt
+            tNew = param['time']
+            tSG = self.data.loc[self.sg.iGl, 'time']
+            n = (tNew - tSG) / dt
+            T1 = self.sg.expGl.iloc[-2]
+            T2 = self.sg.expGl.iloc[-1]
+            Tnew = T1 + (T2 - T1) * (n + 1)
+            # self.data.loc[self.sg.iGl, 'tensionEXPgl'] = T2
+            self.data.loc[self.sg.iGl, 'tensionWgl'] = self.sg.wGl.iloc[-1]
+            self.data.loc[range(self.sg.iGl, len(self.data)), 'tensionEXPgl'] = np.linspace(T2, Tnew, len(
+                self.data) - self.sg.iGl)
+            # self.data.loc[len(self.data) - 2, 'tensionEXPgl'] = np.nan
+            # self.data.loc[len(self.data) - 1, 'tensionEXPgl'] = Tnew
 
-    def Clear2(self, n=None):
-        if n == None or n > self.dataLen:
-            self.data.drop(np.arange(0, self.dataLen), inplace=True)
-            self.dataLen = 0
-        else:
-            self.data.drop(np.arange(self.dataLen - n, self.dataLen), inplace=True)
-            self.dataLen = self.dataLen - n
+    def Tprog(self, tau=40):
+        return self.Ttrend * tau + self.data.loc[len(self.data), 'tensionEXPgl']
+
+    def obrSvas(self, T, v, k_norm=0.001, dv_max=0.02):
+        dT = T - self.Tprog()
+        progres = self.dT_last - dT
+        trueK = self.dV_last / progres
+        self.trueKmas = np.append(self.trueKmas, trueK)
+        dv = trueK * dT
+        if v + dv < 0:
+            v_new = 0
+            dv = -v
+        self.dV_last = dv
+        self.dT_last = dT
+        return v
 
     def SetW(self, wide, dw=0.1, k=None, tau=1, quiet=True):  ## T - tension, wIdeal, w_ideal
         if k == None: k = self.kStr / self.ms.Distance()
@@ -915,7 +931,8 @@ class Puller():
             Time.sleep(1)
             x0, a, b, data = self.SetH(xStart=xStart, xFin=xFin, v=v2, quiet=quiet, x0=x0, a=a, b=b)
             fitData.loc[i] = [a, b, x0]
-        self.Save(fitData, r'C:\Users\Fiber\Desktop\table_control_data\hM_T')
+        Save(fitData, dirSubName='hM_T\\DATE', name='a_b_x0.csv')
+        Save(data, dirSubName='hM_T\\DATE', name='fit.csv')
         x0 = fitData['x0'].mean()
         self.ms.x0 = x0
         return x0
@@ -957,11 +974,12 @@ class Puller():
         self.ms.motorM.MoveTo(x0 + 1.5)
         data = DataBase.data.loc[range(DataBase.l - i, DataBase.l), ['time', 'tension', 'motorM']].copy()
         data.reset_index(drop=True, inplace=True)
-        #print(data)
-        #print(errorFun(data, a, b, x0))
+        # print(data)
+        # print(errorFun(data, a, b, x0))
         DataBase.Clear(-i)
         print("SetH_podgon", np.array([a, b, x0]))
-        resalt = optimize.fmin(lambda x: errorFun(data, x[0], x[1], x[2]), np.array([a, b, x0]), disp=False)  # errorFun(data, x[0], x[1], x[2])
+        resalt = optimize.fmin(lambda x: errorFun(data, x[0], x[1], x[2]), np.array([a, b, x0]),
+                               disp=False)  # errorFun(data, x[0], x[1], x[2])
         a = resalt[0]
         b = resalt[1]
         x0 = resalt[2]
@@ -1016,16 +1034,7 @@ class Puller():
             dp = PlotDisplayer(mainParam='motorM',
                                pl1=data[['motorM', 'error']], pl2=data[['motorM', 'tension', 'fit']])
             dp.Show()
-        return  x0, a, b, data
-
-    # def Clear(self, n=-1):
-    #     self.ms.Clear(n)
-    #     self.pm.Clear(n)
-    #     self.tg.Clear(n)
-    #     self.tPoints = np.array([])
-    #     self.dL_points = np.array([])
-    #     self.a_points = np.array([])
-    #     self.v_points = np.array([])
+        return x0, a, b, data
 
     def Test(self):
         print('tg test:')
@@ -1034,184 +1043,6 @@ class Puller():
         self.pm.Test()
         print('\nms test:')
         self.ms.Test()
-
-    # def GetTime(self, memory=True):
-    #     t = Time.time()
-    #     if len(self.tPoints) == 0:
-    #         self.t0 = t
-    #     if memory:
-    #         self.tPoints = np.append(self.tPoints, t - self.t0)
-    #     return t - self.t0
-
-    def Save(self, data=None, dirName='C:\\Users\\Fiber\\Desktop\\table_control_data\\main_data', name='main.csv'):
-        if type(data) == type(None): data = self.data
-        q = datetime.today()
-        st = str(q.year) + '_' + str(q.month) + '_' + str(q.day) + '__' + str(q.hour) + '_' + str(q.minute)
-        st = dirName + '\\data_' + st
-        if not os.path.exists(st): os.mkdir(st)
-        st = st + '\\' + name
-        if os.path.exists(st): st += (1)
-        data.to_csv(st, index=False)
-        print('data saved')
-
-    # def Puling(self,v0=3,a0=7,h0=1)
-
-
-class PlotDisplayer():
-    def __init__(self, mainParam='time', **plots):
-        self.plotsList = []
-        self.plotDict = {}
-        self.CreateMaket(mainParam, **plots)
-
-    def CreateMaket(self, mainParam, **plots):
-        for plName, plData in plots.items():
-            pl = ploter(mainParam=mainParam, data=plData, name=plName)
-            self.plotDict[plName] = pl
-            self.plotsList += [[pl.plot]]
-        self.grid = layout(self.plotsList)
-
-    def Apdate(self, **plots):
-        for plName, plData in plots.items():
-            if plName == 'for_all':
-                data = plData
-                for name in self.plotDict.keys():
-                    pl = self.plotDict[name]
-                    pl.Apdate(data)
-            else:
-                pl = self.plotDict[plName]
-                pl.Apdate(plData)
-
-    def Show(self):
-        show(self.grid, notebook_handle=True)
-
-    '''def Set(self, plName, hSize=None, lSize=None):
-        pl = self.plotDict[plName]
-        print(pl.data)
-        if hSize == None:
-            hSize = pl.hSize0
-        if lSize == None:
-            lSize = pl.lSize0
-        pl.hSize = hSize
-        pl.lSize = lSize
-        print(pl.hSize,' w ',pl.lSize)
-        pl.aploadData()
-        print(pl.hSize,' w ',pl.lSize)
-        self.grid = layout(self.plotsList)'''
-
-
-class ploter():
-    colorList = ['red', 'blue', 'green', 'yellow']
-
-    def __init__(self, mainParam, data, name='jalko'):
-        self.name = name
-        self.mainParam = mainParam
-        self.hSize0 = 300
-        self.lSize0 = 980
-        self.hSize = self.hSize0
-        self.lSize = self.lSize0
-        # self.lines = np.array([])
-        self.data = data
-        self.aploadData()
-
-    def aploadData(self):
-        self.lines = np.array([])
-        self.plot = figure(plot_width=self.lSize, plot_height=self.hSize, title=self.name)  # , sizing_mode="scale_both"
-        i = 0
-        for param in self.data:
-            if param == self.mainParam:
-                continue
-            line = self.plot.line(x=self.mainParam, y=param, source=self.data, legend_label=param,
-                                  line_color=self.colorList[i % len(self.colorList)])
-            self.lines = np.append(self.lines, line)
-            i += 1
-
-    def Apdate(self, data):
-        self.data = data
-        for line in self.lines:
-            line.data_source.data = data
-
-
-class Slider():
-    def __init__(self):
-        self.Sl = {}
-        self.slBtn = {}
-        self.BtnFl = {}
-        self.BtnBtn = {}
-        self.TtBtn = {}
-        self.TtPogr = {}
-
-    def NewTt(self, name, pogr=4):
-        self.TtBtn[name] = widgets.Output(layout={'border': '1px solid black'})
-        self.TtPogr[name] = pogr
-
-    def ChangeValueTt(self, name, x):
-        with self.TtBtn[name]:
-            print(name + '= ' + ('{:.' + str(self.TtPogr[name]) + 'f}').format(x))
-        self.TtBtn[name].clear_output(wait=True)
-
-    def NewSl(self, name, min=0, max=1, step=0.1, value=0):
-        self.slBtn[name] = widgets.FloatSlider(min=min, max=max, step=step, value=value, description=name,
-                                               orientation='vertical')
-        self.Sl[name] = lambda: self.slBtn[name].value
-
-    def NewBtn(self, name, *description):
-        self.BtnBtn[name] = widgets.Button(description=description[0])
-        self.BtnFl[name] = 0
-        self.BtnBtn[name].on_click(lambda x: self.changeflag(name, *description))
-
-    def Display(self, prin=True):
-        lst0 = list(self.TtBtn.values())
-        lst1 = list(self.slBtn.values())
-        lst2 = list(self.BtnBtn.values())
-        l = max(len(lst0), len(lst1), len(lst2))
-        grid = ipywidgets.GridspecLayout(3, l)
-        i = 0
-        for gr in lst0:
-            grid[0, i] = gr
-            i += 1
-        i = 0
-        for gr in lst1:
-            grid[1, i] = gr
-            i += 1
-        i = 0
-        for gr in lst2:
-            grid[2, i] = gr
-            i += 1
-        if prin:
-            b0 = ipywidgets.Box(lst0)
-            b1 = ipywidgets.Box(lst1)
-            b2 = ipywidgets.Box(lst2)
-            display(ipywidgets.VBox([b0, b1, b2]))
-        # return grid
-
-    def changeflag(self, name, *description):
-        l = len(description)
-        i = (self.BtnFl[name] + 1) % l
-        self.BtnFl[name] = i
-        # print(i,description,description[i])
-        self.BtnBtn[name].description = description[i]
-
-
-class Interactives():
-    def __init__(self):
-        self.dict = {}
-
-    class element():
-        def __init__(self):
-            self.dict = {}
-
-        def New(self, name, value, texn):
-            self.dict[name] = (value, texn)
-
-        def GetValue(self, name):
-            return self.dict[name][0]
-
-        def GetTexn(self, name):
-            return self.dict[name][1]
-
-        def ChangeValue(self, name, value):
-            texn = self.GetTexn(name)
-            self.dict[name] = (value, texn)
 
 
 class Tikalka():
@@ -1379,10 +1210,10 @@ class simulator():
 
 
 class sglad():
-    def __init__(self, alpha, beta):
+    def __init__(self, alpha=0.08, beta=0.2):
         self.dat = pd.Series()
         self.vDat = pd.Series()
-        self.stP = []
+        self.stP = np.array([])
         self.wGl = pd.Series()
         self.expGl = pd.Series()
         self.i = 0
@@ -1391,6 +1222,17 @@ class sglad():
         self.b = beta
         self.stWindow = None
         self.endWindow = None
+        # self.levels = pd.Series()
+        # self.trends = pd.Series()
+        # self.iGLmas = np.array([0])
+
+    # def otcat(self, i):
+    #     self.i = i
+    #     self.iGLmas = self.iGLmas[:i + 1]
+    #     self.iGl = self.iGLmas[-1]
+    #     self.level = self.levels[self.iGl]
+    #     self.trend = self.trends[self.iGl]
+    #     self.stP = self.stP[self.stP <= i]
 
     def New(self, x, v, progn=0, jastPoint=True):
         self.dat.loc[self.i] = x
@@ -1407,6 +1249,7 @@ class sglad():
         else:
             self.iGl = int((self.i + 1) / 2)
         self.i += 1
+        # self.iGLmas = np.append(self.iGLmas, self.iGl)
         return resalt[0], resalt[1]
 
     def findPoint(self):
@@ -1416,7 +1259,7 @@ class sglad():
             q = self.vDat.loc[self.i]
             flag = np.sign(self.vDat.loc[self.i] - self.vDat.loc[self.i - 1])
             if flag == 0 and self.flagSt < 0:
-                self.stP += [self.i]
+                self.stP = np.append(self.stP, self.i)
             self.flagSt = flag
 
     def windowMean(self, mas, i, l0):
@@ -1465,6 +1308,7 @@ class sglad():
         last_level, self.level = self.level, self.a * value + (1 - self.a) * (self.level + self.trend)
         self.trend = self.b * (self.level - last_level) + (1 - self.b) * self.trend
         resalt = self.expGl.loc[self.iGl] = self.level + self.trend
+        # self.levels[self.iGl], self.trends[self.iGl] = self.level, self.trend
         # print(self.iGl,self.level, self.trend)
         if jastPoint:
             self.expGl.loc[self.iGl + progn] = self.level + self.trend * progn
@@ -1508,19 +1352,69 @@ class Time():
 
 class DataBase():
     data = pd.DataFrame()
+    d_data = pd.DataFrame()
+    sg_data = pd.DataFrame()
+    val = {}
+    val_last = {}
     l = 0
+    d_l = 0
+    dt = 0.1
+    t0 = 0
+    smTen = sglad()
+
+    def start():
+        DataBase.data = pd.DataFrame()
+        DataBase.d_data = pd.DataFrame()
+        DataBase.val = {}
+        DataBase.val_last = {}
+        DataBase.l = 0
+        DataBase.d_l = 0
+        DataBase.t0 = Time.time()
+
+    def Apdete():
+        t = DataBase.t0 + (DataBase.d_l) * DataBase.dt
+        endFl = False
+        while t < DataBase.data.loc[DataBase.l - 1, 'time']:
+            new = {}
+            for name in DataBase.d_data.keys():
+                x1 = DataBase.data.loc[DataBase.val_last[name], name]
+                x2 = DataBase.data.loc[DataBase.val[name], name]
+                t1 = DataBase.data.loc[DataBase.val_last[name], 'time']
+                t2 = DataBase.data.loc[DataBase.val[name], 'time']
+                if t > t2:
+                    endFl = True
+                    break
+                if t2 - t1 == 0:
+                    new[name] = x2
+                else:
+                    new[name] = (x1 * (t2 - t) + x2 * (t - t1)) / (t2 - t1)
+            if endFl:
+                break
+            new['time'] = t
+            DataBase.d_data.loc[DataBase.d_l] = new
+            if 'tension' in new and 'vR' in new:
+                DataBase.smTen.New(new['tension'], new['vR'])
+                DataBase.sg_data['tensionWgl'] = DataBase.smTen.wGl
+                DataBase.sg_data['tensionEXPgl'] = DataBase.smTen.expGl
+            t += DataBase.dt
+            DataBase.d_l += 1
 
     def Wright(elem, inExsist=False):
-        flag = False
         t = Time.time()
         if inExsist:
             DataBase.l -= 1
+        elif not 'time' in elem.keys():
+            elem['time'] = t
+
         for elName, elData in elem.items():
-            if elName == 'time':
-                flag = True
+            if not elName in DataBase.d_data.keys():
+                DataBase.d_data[elName] = elData
+                DataBase.val[elName] = DataBase.l
+            if (not inExsist) or (not elName in DataBase.data.keys()) or pd.isna(DataBase.data.loc[DataBase.l, elName]):
+                DataBase.val_last[elName] = DataBase.val[elName]
+                DataBase.val[elName] = DataBase.l
             DataBase.data.loc[DataBase.l, elName] = elData
-        if not flag:
-            DataBase.data.loc[DataBase.l, 'time'] = t
+
         DataBase.l += 1
 
     def Clear(n=None, mas=None):
@@ -1529,7 +1423,7 @@ class DataBase():
                 mas = range(0, DataBase.l)
             else:
                 if abs(n) > DataBase.l:
-                    n = DataBase.l * np.sign(n)
+                    n = DataBase.l * int(np.sign(n))
                 if n < 0:
                     mas = range(DataBase.l - n, DataBase.l)
                 if n > 0:
@@ -1537,5 +1431,15 @@ class DataBase():
         DataBase.data.drop(mas, inplace=True)
         DataBase.data.reset_index(drop=True, inplace=True)
         DataBase.l = DataBase.data.shape[0]
+
         if DataBase.l == 0:
-            DataBase.data = pd.DataFrame()
+            DataBase.start()
+            DataBase.smTen = sglad()
+        else:
+            l1 = int((DataBase.data['time'].iloc[-1] - DataBase.t0) // DataBase.dt)
+            DataBase.d_data.drop(range(l1, DataBase.d_l))
+            DataBase.smTen.otcat(l1)
+
+    def Save():
+        Save(DataBase.data, name='crude.csv', dirSubName='main_data\\DATE')
+        Save(DataBase.d_data, name='time_smooth.csv', dirSubName='main_data\\DATE')
