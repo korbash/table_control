@@ -811,7 +811,7 @@ class Puller():
         self.pm = ReadingDevise(pm, 'power', weightCoef=1000)
         self.ms = MotorSystem(simulate=simulate, simulator=self.sim)
         self.Ttrend = 0
-        self.dT_last = 0
+        self.T_last = 0
         self.dV_last = 0
         self.trueKmas = np.array([])
         self.Clear()
@@ -828,10 +828,14 @@ class Puller():
         del self.pm
         del self.tg
 
+    def Save(self):
+        Save(self.data, name='crude.csv', dirSubName='main_data\\DATE')
+
     def Clear(self):
         self.data = pd.DataFrame(
             columns=['time', 'tension', 'power', 'motorL', 'motorR', 'motorM', 'dt', 'x', 'vL', 'vR', 'vM', 'VdifRec',
                      'tensionWgl', 'tensionEXPgl'])
+        self.sg = sglad()
 
     def Read(self, motoL=True, motoR=True, motoM=True):
         param = {}
@@ -871,21 +875,20 @@ class Puller():
             # self.data.loc[len(self.data) - 2, 'tensionEXPgl'] = np.nan
             # self.data.loc[len(self.data) - 1, 'tensionEXPgl'] = Tnew
 
-    def Tprog(self, tau=40):
-        return self.Ttrend * tau + self.data.loc[len(self.data), 'tensionEXPgl']
+    def Tprog(self, tau=10):
+        return self.Ttrend * tau + self.data.loc[len(self.data) - 1, 'tensionEXPgl']
 
-    def obrSvas(self, T, v, k_norm=0.001, dv_max=0.02):
-        dT = T - self.Tprog()
-        progres = self.dT_last - dT
-        trueK = self.dV_last / progres
+    def obrSvas(self, T, dv, k_norm=0.001, dv_max=0.02):
+
+        dT = T - self.Tprog(0)
+        progres = (self.Tprog(0) - self.T_last) * np.sign(T-self.T_last)
+        trueK = max(dv / progres, 0.0001)
         self.trueKmas = np.append(self.trueKmas, trueK)
-        dv = trueK * dT
-        if v + dv < 0:
-            v_new = 0
-            dv = -v
-        self.dV_last = dv
-        self.dT_last = dT
-        return v
+        dv += trueK * dT
+        if dv < 0:
+            dv = 0
+        self.T_last = dT
+        return dv
 
     def SetW(self, wide, dw=0.1, k=None, tau=1, quiet=True):  ## T - tension, wIdeal, w_ideal
         if k == None: k = self.kStr / self.ms.Distance()
