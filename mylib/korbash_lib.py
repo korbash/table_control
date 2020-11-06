@@ -476,7 +476,7 @@ class MotorSystem():
         self.R_x = lambda x: f(self.funR_x, self.xMax, x)
         self.lStart = self.L_x(0) / 2
         self.direction = 0
-        self.MotorsControlStart()
+        # self.MotorsControlStart()
 
     def ForgotMotion(self, btn=None):
         self.motorL.FogotMotion()
@@ -647,98 +647,98 @@ class MotorSystem():
         L = (pL - pR) / 2 - centrStart
         return x, L
 
-    def MotorsControlStart(self):
-        self.phase = -1
-        self.tStart = float('+inf')
-        self.tStart1 = 0
-        self.tFinish1 = 0
-        self.tFinish = 0
-        self.lastPhase = -1
-        self.tEnd = 0
-        self.tEnd2 = float('+inf')
-        self.isUp = False
-        self.stFl = False
+    # def MotorsControlStart(self):
+    #     self.phase = -1
+    #     self.tStart = float('+inf')
+    #     self.tStart1 = 0
+    #     self.tFinish1 = 0
+    #     self.tFinish = 0
+    #     self.lastPhase = -1
+    #     self.tEnd = 0
+    #     self.tEnd2 = float('+inf')
+    #     self.isUp = False
+    #     self.stFl = False
 
-    def PulMotorsControl(self, v, a, dv, NewMosH, upFl=True, stFl=False, dhKof=0.5, ah=9):
-        NewMosH += self.x0
-        t = Time.time()
-        downPos = self.motorM.position_max - 2
-        tau = v / a
-        dhMax = ah * tau ** 2 / 4
-        self.lastPhase = self.phase
-        if t < self.tStart:
-            self.phase = -1
-        elif t < self.tStart1:
-            self.phase = 0
-        elif t < self.tFinish1:
-            self.phase = 1
-        elif t < self.tFinish:
-            self.phase = 2
-        else:
-            self.phase = 3
-
-        if self.phase == -1:
-            if self.stFl:
-                while self.motorM.IsInMotion():
-                    Time.sleep(0.001)
-                self.motorM.MoveTo(downPos)
-                return -1
-            else:
-                if not self.IsInMotion():
-                    self.stFl = self.PulMove(v, a, 0, stFl)
-                    self.tEnd = t + self.motorR.CalculateMottonTime()
-                if self.tEnd > self.tEnd2:
-                    self.tStart = self.tEnd
-                if not self.motorM.IsInMotion():
-                    if upFl:
-                        if not self.isUp:
-                            self.motorM.MoveTo(NewMosH + dhMax * dhKof)
-                            self.tEnd2 = t + self.motorM.CalculateMottonTime()
-                            self.isUp = True
-                    else:
-                        if self.isUp:
-                            self.motorM.MoveTo(downPos)
-                            self.isUp = False
-
-        if self.phase == 3:
-            if self.phase != self.lastPhase:
-                if self.IsInMotion():
-                    self.phase = self.lastPhase
-                    return 0
-                if not upFl or self.stFl:
-                    self.tStart = float('+inf')
-                    self.tStart1 = 0
-                    self.tFinish1 = 0
-                    self.tFinish = 0
-                    self.tEnd = 0
-                    self.tEnd2 = float('+inf')
-                else:
-                    self.stFl = self.PulMove(v, a, dv, stFl)
-                    self.tStart = Time.time()
-                    self.tStart1 = self.tStart + v / a
-                    self.tFinish = self.tStart + self.motorR.CalculateMottonTime()
-                    self.tFinish1 = self.tFinish - v / a
-                    if self.tFinish1 < self.tStart1:
-                        self.tStart1 = self.tFinish1 = (self.tStart + self.tFinish) / 2
-                    dh1 = self.motorM.Getposition() - NewMosH
-                    p = self.motorM.Getposition()
-                    if abs(dh1) > dhMax:
-                        dh1 = dhMax * np.sign(dh1)
-                        print('you so fast, i think it is too math')
-                    vh = 1 / 2 * ah * (tau - math.sqrt((ah * tau ** 2 - 4 * abs(dh1)) / ah))
-                    while self.motorM.IsInMotion():
-                        Time.sleep(0.001)
-                    self.motorM.Move(-dh1, vh, ah)
-
-        if self.phase == 2:
-            if self.phase != self.lastPhase:
-                while self.motorM.IsInMotion():
-                    Time.sleep(0.001)
-                # p=self.motorM.Getposition()
-                dh = dhMax * dhKof
-                vh = 1 / 2 * ah * (tau - math.sqrt((ah * tau ** 2 - 4 * dh) / ah))
-                self.motorM.Move(dh, vh, ah)
-        return 0
+    # def PulMotorsControl(self, v, a, dv, NewMosH, upFl=True, stFl=False, dhKof=0.5, ah=9):
+    #     NewMosH += self.x0
+    #     t = Time.time()
+    #     downPos = self.motorM.position_max - 2
+    #     tau = v / a
+    #     dhMax = ah * tau ** 2 / 4
+    #     self.lastPhase = self.phase
+    #     if t < self.tStart:
+    #         self.phase = -1
+    #     elif t < self.tStart1:
+    #         self.phase = 0
+    #     elif t < self.tFinish1:
+    #         self.phase = 1
+    #     elif t < self.tFinish:
+    #         self.phase = 2
+    #     else:
+    #         self.phase = 3
+    #
+    #     if self.phase == -1:
+    #         if self.stFl:
+    #             while self.motorM.IsInMotion():
+    #                 Time.sleep(0.001)
+    #             self.motorM.MoveTo(downPos)
+    #             return -1
+    #         else:
+    #             if not self.IsInMotion():
+    #                 self.stFl = self.PulMove(v, a, 0, stFl)
+    #                 self.tEnd = t + self.motorR.CalculateMottonTime()
+    #             if self.tEnd > self.tEnd2:
+    #                 self.tStart = self.tEnd
+    #             if not self.motorM.IsInMotion():
+    #                 if upFl:
+    #                     if not self.isUp:
+    #                         self.motorM.MoveTo(NewMosH + dhMax * dhKof)
+    #                         self.tEnd2 = t + self.motorM.CalculateMottonTime()
+    #                         self.isUp = True
+    #                 else:
+    #                     if self.isUp:
+    #                         self.motorM.MoveTo(downPos)
+    #                         self.isUp = False
+    #
+    #     if self.phase == 3:
+    #         if self.phase != self.lastPhase:
+    #             if self.IsInMotion():
+    #                 self.phase = self.lastPhase
+    #                 return 0
+    #             if not upFl or self.stFl:
+    #                 self.tStart = float('+inf')
+    #                 self.tStart1 = 0
+    #                 self.tFinish1 = 0
+    #                 self.tFinish = 0
+    #                 self.tEnd = 0
+    #                 self.tEnd2 = float('+inf')
+    #             else:
+    #                 self.stFl = self.PulMove(v, a, dv, stFl)
+    #                 self.tStart = Time.time()
+    #                 self.tStart1 = self.tStart + v / a
+    #                 self.tFinish = self.tStart + self.motorR.CalculateMottonTime()
+    #                 self.tFinish1 = self.tFinish - v / a
+    #                 if self.tFinish1 < self.tStart1:
+    #                     self.tStart1 = self.tFinish1 = (self.tStart + self.tFinish) / 2
+    #                 dh1 = self.motorM.Getposition() - NewMosH
+    #                 p = self.motorM.Getposition()
+    #                 if abs(dh1) > dhMax:
+    #                     dh1 = dhMax * np.sign(dh1)
+    #                     print('you so fast, i think it is too math')
+    #                 vh = 1 / 2 * ah * (tau - math.sqrt((ah * tau ** 2 - 4 * abs(dh1)) / ah))
+    #                 while self.motorM.IsInMotion():
+    #                     Time.sleep(0.001)
+    #                 self.motorM.Move(-dh1, vh, ah)
+    #
+    #     if self.phase == 2:
+    #         if self.phase != self.lastPhase:
+    #             while self.motorM.IsInMotion():
+    #                 Time.sleep(0.001)
+    #             # p=self.motorM.Getposition()
+    #             dh = dhMax * dhKof
+    #             vh = 1 / 2 * ah * (tau - math.sqrt((ah * tau ** 2 - 4 * dh) / ah))
+    #             self.motorM.Move(dh, vh, ah)
+    #     return 0
 
     def PulMove(self, v, a, dv, stFl):
         dt = 0  # рудимент пока похраним
@@ -811,15 +811,20 @@ class Puller():
         self.pm = ReadingDevise(pm, 'power', weightCoef=1000)
         self.ms = MotorSystem(simulate=simulate, simulator=self.sim)
         self.Ttrend = 0
-        self.T_last = 0
-        self.dV_last = 0
+        self.t_new = 0
+        self.T_new = 0
+        self.dv_new = 0
         self.trueKmas = np.array([])
         self.Clear()
+        self.v = 5
+        self.a = 9
+        self.dv = 0
+        self.tact = 0
 
         self.VdifRec = 0
 
         self.sg = sglad(0.08, 0.2)
-
+        self.MotorsControlStart()
         '''self.Slider = {}
         self.slidersBtn = {}'''
 
@@ -875,20 +880,28 @@ class Puller():
             # self.data.loc[len(self.data) - 2, 'tensionEXPgl'] = np.nan
             # self.data.loc[len(self.data) - 1, 'tensionEXPgl'] = Tnew
 
-    def Tprog(self, tau=10):
+    def Tprog(self, tau=0):
         return self.Ttrend * tau + self.data.loc[len(self.data) - 1, 'tensionEXPgl']
 
-    def obrSvas(self, T, dv, k_norm=0.001, dv_max=0.02):
-
-        dT = T - self.Tprog(0)
-        progres = (self.Tprog(0) - self.T_last) * np.sign(T-self.T_last)
-        trueK = max(dv / progres, 0.0001)
+    def obrSvas(self, T, tau):
+        dt = self.t_new - self.t_last
+        dT = self.T_new - self.T_last
+        progres = dT / dt * np.sign(T - self.T_last)
+        dT2 = T - self.Tprog(tau / 2)
+        trueK = max(self.dv_last / (progres * tau), 0.0001)
         self.trueKmas = np.append(self.trueKmas, trueK)
-        dv += trueK * dT
-        if dv < 0:
-            dv = 0
-        self.T_last = dT
-        return dv
+        self.dv = self.dv_last + trueK * dT2
+        if self.dv < 0:
+            self.dv = 0
+        return self.dv
+
+    def meser_param(self, dv):
+        self.t_last = self.t_new
+        self.t_new = Time.time()
+        self.T_last = self.T_new
+        self.T_new = self.Tprog(0)
+        self.dv_last = self.dv_new
+        self.dv_new = dv
 
     def SetW(self, wide, dw=0.1, k=None, tau=1, quiet=True):  ## T - tension, wIdeal, w_ideal
         if k == None: k = self.kStr / self.ms.Distance()
@@ -1038,6 +1051,108 @@ class Puller():
                                pl1=data[['motorM', 'error']], pl2=data[['motorM', 'tension', 'fit']])
             dp.Show()
         return x0, a, b, data
+
+    def MotorsControlStart(self):
+        self.phase = -1
+        self.tStart = float('+inf')
+        self.tStart1 = 0
+        self.tFinish1 = 0
+        self.tFinish = 0
+        self.lastPhase = -1
+        self.tEnd = 0
+        self.tEnd2 = float('+inf')
+        self.isUp = False
+        self.stFl = False
+
+    def PulMotorsControl(self, NewMosH, NewT, upFl=True, stFl=False, vsFl=False, dhKof=0.5, ah=9):
+        NewMosH += self.ms.x0
+        t = Time.time()
+        downPos = self.ms.motorM.position_max - 2
+        tau = self.v / self.a
+        dhMax = ah * tau ** 2 / 4
+        self.lastPhase = self.phase
+
+        self.Read()
+
+        if t < self.tStart:
+            self.phase = -1
+        elif t < self.tStart1:
+            self.phase = 0
+        elif t < self.tFinish1:
+            self.phase = 1
+        elif t < self.tFinish:
+            self.phase = 2
+        else:
+            self.phase = 3
+
+        if self.phase == -1:
+            if self.stFl:
+                while self.ms.motorM.IsInMotion():
+                    Time.sleep(0.001)
+                self.ms.motorM.MoveTo(downPos)
+                return -1
+            else:
+                if not self.ms.IsInMotion():
+                    self.stFl = self.ms.PulMove(self.v, self.a, 0, stFl)
+                    self.tEnd = t + self.ms.motorR.CalculateMottonTime()
+                if self.tEnd > self.tEnd2:
+                    self.tStart = self.tEnd
+                if not self.ms.motorM.IsInMotion():
+                    if upFl:
+                        if not self.isUp:
+                            self.ms.motorM.MoveTo(NewMosH + dhMax * dhKof)
+                            self.tEnd2 = t + self.ms.motorM.CalculateMottonTime()
+                            self.isUp = True
+                    else:
+                        if self.isUp:
+                            self.ms.motorM.MoveTo(downPos)
+                            self.isUp = False
+
+        if self.phase == 3:
+            if self.phase != self.lastPhase:
+                if self.ms.IsInMotion():
+                    self.phase = self.lastPhase
+                    return 0
+                if not upFl or self.stFl:
+                    self.tStart = float('+inf')
+                    self.tStart1 = 0
+                    self.tFinish1 = 0
+                    self.tFinish = 0
+                    self.tEnd = 0
+                    self.tEnd2 = float('+inf')
+                else:
+                    if self.tact>4:
+                        self.meser_param(self.dv)
+                        if vsFl and self.tact > 6:
+                            self.dv = self.obrSvas(NewT, self.tFinish - self.tStart)
+                        print(self.v, self.a, self.dv, self.t_new, self.t_last, self.T_new, self.T_last)
+                    self.stFl = self.ms.PulMove(self.v, self.a, self.dv, stFl)
+                    self.tStart = Time.time()
+                    self.tStart1 = self.tStart + self.v / self.a
+                    self.tFinish = self.tStart + self.ms.motorR.CalculateMottonTime()
+                    self.tFinish1 = self.tFinish - self.v / self.a
+                    if self.tFinish1 < self.tStart1:
+                        self.tStart1 = self.tFinish1 = (self.tStart + self.tFinish) / 2
+                    dh1 = self.ms.motorM.Getposition() - NewMosH
+                    p = self.ms.motorM.Getposition()
+                    if abs(dh1) > dhMax:
+                        dh1 = dhMax * np.sign(dh1)
+                        print('you so fast, i think it is too math')
+                    vh = 1 / 2 * ah * (tau - math.sqrt((ah * tau ** 2 - 4 * abs(dh1)) / ah))
+                    while self.ms.motorM.IsInMotion():
+                        Time.sleep(0.001)
+                    self.ms.motorM.Move(-dh1, vh, ah)
+                    self.tact += 1
+
+        if self.phase == 2:
+            if self.phase != self.lastPhase:
+                while self.ms.motorM.IsInMotion():
+                    Time.sleep(0.001)
+                # p=self.motorM.Getposition()
+                dh = dhMax * dhKof
+                vh = 1 / 2 * ah * (tau - math.sqrt((ah * tau ** 2 - 4 * dh) / ah))
+                self.ms.motorM.Move(dh, vh, ah)
+        return 0
 
     def Test(self):
         print('tg test:')

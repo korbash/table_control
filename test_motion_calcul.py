@@ -148,9 +148,12 @@ def chek_PulMotorsControl(v0, a0, dv=0, tau=5):
     print('starting test')
     i = 0
     t = 0
+    pl.v=v0
+    pl.a=a0
+    pl.dv=dv
     while t < tau:
         t = Time.time() - t0
-        if pl.ms.PulMotorsControl(v0, a0, dv, 1 - 0*t / 30)==-1: break
+        if pl.PulMotorsControl(1 - 0*t / 30,20)==-1: break
         x, v, a, isin = pl.ms.motorR.calcX_V_A_IsInMot()
         xL = pl.ms.motorL.Getposition()
         xM = pl.ms.motorM.Getposition()
@@ -205,4 +208,4 @@ pl.ms.x0 = 10
 while pl.ms.IsInMotion(all=True):
     Time.sleep(0.01)
 print(pl.ms.motorR.Getposition(), pl.ms.motorL.Getposition())
-chek_PulMotorsControl(3, 7, dv=1, tau=50)
+chek_PulMotorsControl(3, 7, dv=0.5, tau=100)
