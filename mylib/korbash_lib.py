@@ -163,7 +163,7 @@ class ReadingDevise():
         return self.zeroCoef
 
     def SetZeroWeight(self, tau=10, T=0):
-        self.zeroWeight = self.ReadValue(memory=False, tau=tau) - T
+        self.zeroWeight += self.ReadValue(memory=False, tau=tau) - T
         return self.zeroWeight
 
     def Test(self, n=5):
@@ -820,6 +820,8 @@ class Puller():
         self.a = 9
         self.dv = 0
         self.tact = 0
+        self.times = np.array([])
+        self.trueKmasGl = np.array([])
 
         self.VdifRec = 0
 
@@ -835,6 +837,11 @@ class Puller():
 
     def Save(self):
         Save(self.data, name='crude.csv', dirSubName='main_data\\DATE')
+        Save(pd.DataFrame({
+            'time': self.times,
+            'kof': self.trueKmas,
+            'sglKof': self.trueKmasGl,
+        }), name='odrKof.csv', dirSubName='main_data\\DATE')
 
     def Clear(self):
         self.data = pd.DataFrame(
@@ -849,7 +856,7 @@ class Puller():
         param['motorR'] = self.ms.motorR.Getposition()
         param['motorM'] = self.ms.motorM.Getposition()
         param['power'] = self.pm.ReadValue()
-        param['tension'] = self.tg.ReadValue(inExsist=True)
+        param['tension'] = self.tg.ReadValue()
         tFn = Time.time()
         param['dt'] = tFn - tSt
         param['x'], param['L'] = self.ms.calcX_L()
@@ -888,9 +895,20 @@ class Puller():
         dT = self.T_new - self.T_last
         progres = dT / dt * np.sign(T - self.T_last)
         dT2 = T - self.Tprog(tau / 2)
-        trueK = max(self.dv_last / (progres * tau), 0.0001)
-        self.trueKmas = np.append(self.trueKmas, trueK)
-        self.dv = self.dv_last + trueK * dT2
+        trueK0 = max(self.dv_last / (progres * tau), 0.0001)
+        self.trueKmas = np.append(self.trueKmas, trueK0)
+        self.times = np.append(self.times, self.t_new)
+        trueK = Exp_everage(self.trueKmas, self.times, tau=40)
+        self.trueKmasGl = np.append(self.trueKmasGl, trueK)
+        print(trueK0,trueK)
+        self.dv = self.dv_last + trueK * dT2 / 4
+        if self.dv < 0:
+            self.dv = 0
+        return self.dv
+
+    def obrSvas2(self, T, tau , kof):
+        dT = T - self.Tprog(tau * 3 / 2)
+        self.dv = self.dv_last + kof * dT
         if self.dv < 0:
             self.dv = 0
         return self.dv
@@ -1064,15 +1082,15 @@ class Puller():
         self.isUp = False
         self.stFl = False
 
-    def PulMotorsControl(self, NewMosH, NewT, upFl=True, stFl=False, vsFl=False, dhKof=0.5, ah=9):
+    def PulMotorsControl(self, NewMosH, NewT, upFl=True, stFl=False, vsFl=False, dhKof=0.5, ah=9,obrKof=0.0001):
+        self.Read()
+
         NewMosH += self.ms.x0
         t = Time.time()
         downPos = self.ms.motorM.position_max - 2
         tau = self.v / self.a
         dhMax = ah * tau ** 2 / 4
         self.lastPhase = self.phase
-
-        self.Read()
 
         if t < self.tStart:
             self.phase = -1
@@ -1094,6 +1112,7 @@ class Puller():
             else:
                 if not self.ms.IsInMotion():
                     self.stFl = self.ms.PulMove(self.v, self.a, 0, stFl)
+                    self.sg.NewStTime()
                     self.tEnd = t + self.ms.motorR.CalculateMottonTime()
                 if self.tEnd > self.tEnd2:
                     self.tStart = self.tEnd
@@ -1121,12 +1140,13 @@ class Puller():
                     self.tEnd = 0
                     self.tEnd2 = float('+inf')
                 else:
-                    if self.tact>4:
+                    if self.tact > 4:
                         self.meser_param(self.dv)
                         if vsFl and self.tact > 6:
-                            self.dv = self.obrSvas(NewT, self.tFinish - self.tStart)
-                        print(self.v, self.a, self.dv, self.t_new, self.t_last, self.T_new, self.T_last)
+                            self.dv = self.obrSvas2(NewT, self.tFinish - self.tStart,obrKof)
+                        # print(self.v, self.a, self.dv, self.t_new, self.t_last, self.T_new, self.T_last)
                     self.stFl = self.ms.PulMove(self.v, self.a, self.dv, stFl)
+                    self.sg.NewStTime()
                     self.tStart = Time.time()
                     self.tStart1 = self.tStart + self.v / self.a
                     self.tFinish = self.tStart + self.ms.motorR.CalculateMottonTime()
@@ -1340,6 +1360,7 @@ class sglad():
         self.b = beta
         self.stWindow = None
         self.endWindow = None
+        self.readFl = True
         # self.levels = pd.Series()
         # self.trends = pd.Series()
         # self.iGLmas = np.array([0])
@@ -1355,7 +1376,7 @@ class sglad():
     def New(self, x, v, progn=0, jastPoint=True):
         self.dat.loc[self.i] = x
         self.vDat.loc[self.i] = v
-        self.findPoint()
+        # self.findPoint()
         resalt = (None, None)
         if len(self.stP) >= 2:
             self.periud = self.stP[-1] - self.stP[-2]
@@ -1378,7 +1399,13 @@ class sglad():
             flag = np.sign(self.vDat.loc[self.i] - self.vDat.loc[self.i - 1])
             if flag == 0 and self.flagSt < 0:
                 self.stP = np.append(self.stP, self.i)
+                print(self.i)
             self.flagSt = flag
+
+    def NewStTime(self):
+        if self.readFl:
+            self.stP = np.append(self.stP, self.i)
+        self.readFl = not self.readFl
 
     def windowMean(self, mas, i, l0):
         l = math.floor(l0 / 2)
@@ -1556,7 +1583,7 @@ class DataBase():
         else:
             l1 = int((DataBase.data['time'].iloc[-1] - DataBase.t0) // DataBase.dt)
             DataBase.d_data.drop(range(l1, DataBase.d_l))
-            DataBase.smTen.otcat(l1)
+            # DataBase.smTen.otcat(l1)
 
     def Save():
         Save(DataBase.data, name='crude.csv', dirSubName='main_data\\DATE')
