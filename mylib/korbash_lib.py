@@ -13,6 +13,7 @@ from scipy import optimize
 from scipy.integrate import cumtrapz
 from scipy.interpolate import interp1d
 from visualization import PlotDisplayer, Slider
+from newport import Controller
 import driwers as dr
 
 
@@ -900,13 +901,13 @@ class Puller():
         self.times = np.append(self.times, self.t_new)
         trueK = Exp_everage(self.trueKmas, self.times, tau=40)
         self.trueKmasGl = np.append(self.trueKmasGl, trueK)
-        print(trueK0,trueK)
+        print(trueK0, trueK)
         self.dv = self.dv_last + trueK * dT2 / 4
         if self.dv < 0:
             self.dv = 0
         return self.dv
 
-    def obrSvas2(self, T, tau , kof):
+    def obrSvas2(self, T, tau, kof):
         dT = T - self.Tprog(tau * 3 / 2)
         self.dv = self.dv_last + kof * dT
         if self.dv < 0:
@@ -1082,7 +1083,7 @@ class Puller():
         self.isUp = False
         self.stFl = False
 
-    def PulMotorsControl(self, NewMosH, NewT, upFl=True, stFl=False, vsFl=False, dhKof=0.5, ah=9,obrKof=0.0001):
+    def PulMotorsControl(self, NewMosH, NewT, upFl=True, stFl=False, vsFl=False, dhKof=0.5, ah=9, obrKof=0.0001):
         self.Read()
 
         NewMosH += self.ms.x0
@@ -1143,7 +1144,7 @@ class Puller():
                     if self.tact > 4:
                         self.meser_param(self.dv)
                         if vsFl and self.tact > 6:
-                            self.dv = self.obrSvas2(NewT, self.tFinish - self.tStart,obrKof)
+                            self.dv = self.obrSvas2(NewT, self.tFinish - self.tStart, obrKof)
                         # print(self.v, self.a, self.dv, self.t_new, self.t_last, self.T_new, self.T_last)
                     self.stFl = self.ms.PulMove(self.v, self.a, self.dv, stFl)
                     self.sg.NewStTime()
@@ -1183,37 +1184,40 @@ class Puller():
         self.ms.Test()
 
 
-class Tikalka():
-    def __init__(self):
-        self._controller = Controller(idProduct=0x4000, idVendor=0x104d)
+class tikalka_base():
+    _controller = Controller(idProduct=0x4000, idVendor=0x104d)
+    ides = {'x': 3, 'y': 2, 'z': 1}
 
-    def wait_for_motor(self, motor_id):
-        motor_done_cmd = '{}MD?'.format(motor_id)
-        is_done = False
-        while not is_done:
-            resp = self._controller.command(motor_done_cmd)
-            is_done = int(resp[2])
+    def __init__(self, name):
+        self.id = tikalka_base.ides[name]
 
-    def move_relative(self, motor_id, value):
-        move_motor_cmd = '{}PR{}'.format(motor_id, value)
+    def IsInMotion(self):
+        motor_done_cmd = '{}MD?'.format(self.id)
+        resp = tikalka_base._controller.command(motor_done_cmd)
+        return not int(resp[2])  # True if motor in motion
+
+    def move(self, value):
+        while self.IsInMotion():
+            pass
+        move_motor_cmd = '{}PR{}'.format(self.id, value)
         # print(move_motor_cmd)
-        self._controller.command(move_motor_cmd)
+        tikalka_base._controller.command(move_motor_cmd)
 
-    def move_absolute(self, motor_id, value):
-        move_motor_cmd = '{}PA{}'.format(motor_id, value)
-        self._controller.command(move_motor_cmd)
-
-    def get_home_position(self, motor_id):
-        return int(self._controller.command('{}DH?'.format(motor_id))[2:])
-
-    def get_position(self, motor_id):
-        return int(self._controller.command('{}TP?'.format(motor_id))[2:])
-
-    def set_home_position(self, motor_id, value):
-        self._controller.command('{}DH{}'.format(motor_id, value))
-
-    def get_target(self, motor_id):
-        return int(self._controller.command('{}PA?'.format(motor_id))[2:])
+    # def move_absolute(self, motor_id, value):
+    #     move_motor_cmd = '{}PA{}'.format(motor_id, value)
+    #     self._controller.command(move_motor_cmd)
+    #
+    # def get_home_position(self, motor_id):
+    #     return int(self._controller.command('{}DH?'.format(motor_id))[2:])
+    #
+    # def get_position(self, motor_id):
+    #     return int(self._controller.command('{}TP?'.format(motor_id))[2:])
+    #
+    # def set_home_position(self, motor_id, value):
+    #     self._controller.command('{}DH{}'.format(motor_id, value))
+    #
+    # def get_target(self, motor_id):
+    #     return int(self._controller.command('{}PA?'.format(motor_id))[2:])
 
 
 class simulator():
@@ -1225,6 +1229,10 @@ class simulator():
         self.motorM = self.motSim()
         self.tg = self.devise(self.GetTention)
         self.pm = self.devise(self.GetPower)
+        self.tg_tic = self.devise(self.GetTention2)
+        self.mX = self.tic('x')
+        self.mY = self.tic('y')
+        self.mZ = self.tic('z')
         self.k0 = k0
         self.l0 = l0
         self.L0 = L0
@@ -1244,9 +1252,41 @@ class simulator():
         Time.sleep(simulator.dtS)
         return ten / self.weightCoff
 
+    def GetTention2(self):
+        if self.mZ.getCoord()[0] > -10000:
+            ten = 0
+        else:
+            ten = (-10000 - self.mZ.getCoord()[0]) * 0.001
+        Time.sleep(simulator.dtS)
+        return ten / self.weightCoff
+
     def GetPower(self):
         Time.sleep(simulator.dtS)
         return 3.8 * 10 ** -5
+
+    class tic():
+
+        def __init__(self, name):
+            self.name = name
+            self.coord_last = 0
+            self.coord_new = 0
+            self.t_st = Time.time()
+            self.v = 100
+
+        def getCoord(self):
+            dx = self.coord_new - self.coord_last
+            dt = Time.time() - self.t_st
+            if self.v * dt > abs(dx):
+                return self.coord_new, False
+            else:
+                return self.coord_last + dx / self.v, True
+
+        def move(self, value):
+            self.coord_last = self.coord_new
+            self.coord_new = self.coord_last + value
+
+        def IsInMotion(self):
+            return self.getCoord()[1]
 
     class motSim():
         def __init__(self):
@@ -1588,3 +1628,29 @@ class DataBase():
     def Save():
         Save(DataBase.data, name='crude.csv', dirSubName='main_data\\DATE')
         Save(DataBase.d_data, name='time_smooth.csv', dirSubName='main_data\\DATE')
+
+
+class Tikalka():
+    def __init__(self, simulate=False):
+        if simulate:
+            self.sim = simulator(104, 1, -0.0075585384235655265)
+            tg = self.sim.tg_tic
+            pm = self.sim.pm
+            self.motX = self.sim.mX
+            self.motY = self.sim.mY
+            self.motZ = self.sim.mZ
+        else:
+            self.sim = None
+            tg = dr.tensionGauge()
+            pm = dr.powerMeter()
+            self.motX = tikalka_base('x')
+            self.motY = tikalka_base('y')
+            self.motZ = tikalka_base('z')
+        self.tg = ReadingDevise(tg, 'tension', weightCoef=-0.0075585384235655265)
+        self.pm = ReadingDevise(pm, 'power', weightCoef=1000)
+
+    def FindZero(self, Tpr=0.01, zapas=100, step=10):
+        T0 = self.tg.ReadValue(tau=5)
+        T=T0
+        while (T - T0 < Tpr):
+            self.motZ.move(-step)

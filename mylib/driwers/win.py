@@ -4,6 +4,12 @@ from ctypes import c_uint32, byref, create_string_buffer, c_bool, c_int, c_doubl
 import serial
 import time
 
+def isfloat(value):
+    try:
+        float(value)
+        return True
+    except ValueError:
+        return False
 
 class motor(apt.Motor):
     def __init__(self, motor_id):
@@ -69,7 +75,7 @@ class tensionGauge():
         self.Connect()
 
     def Connect(self):
-        self.port = serial.Serial(port="COM3", baudrate=115200, bytesize=8, timeout=2, stopbits=serial.STOPBITS_ONE)
+        self.port = serial.Serial(port="COM5", baudrate=115200, bytesize=8, timeout=2, stopbits=serial.STOPBITS_ONE)
         time.sleep(1)  # действительно нужно
         self.port.write(1)
         time.sleep(1)
@@ -83,19 +89,18 @@ class tensionGauge():
         self.port.write(1)
         string = ''
         i = 0
-        while len(string) < 3:
+        while len(string) < 3 or not isfloat(string):
             t0 = time.time()
             while self.port.in_waiting == 0:
                 if time.time() - t0 > 2:
                     print('tg read waiting problem')
                     return 'problem'
             string = self.port.readline()
-            # print(string)
             if len(string) < 3:
                 i += 1
                 if i > 10:
                     print('tg read problem')
                     return 'problem'
-        # print(string)
+            # print(string)
         weight = float(string[0:-2])
         return weight

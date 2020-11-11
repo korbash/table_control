@@ -41,6 +41,7 @@ TODO:
 import usb.core
 import usb.util
 import re
+import usb.backend.libusb1
 
 NEWFOCUS_COMMAND_REGEX = re.compile("([0-9]{0,1})([a-zA-Z?]{2,})([0-9+-]*)")
 MOTOR_TYPE = {
@@ -87,9 +88,11 @@ class Controller(object):
             Assert False: if the input and outgoing endpoints can't be established
         """
         # find the device
+        backend = usb.backend.libusb1.get_backend(find_library=lambda x: 'C:\\Users\\korba\\PycharmProjects\\table_control\\mylib\\dll\\libusb-1.0.dll')
         self.dev = usb.core.find(
                         idProduct=self.idProduct,
-                        idVendor=self.idVendor
+                        idVendor=self.idVendor,
+                        backend=backend
                         )
        
         if self.dev is None:

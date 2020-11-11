@@ -1,5 +1,5 @@
-from . import _APTAPI
-from . import _error_codes
+from driwers.thorlabs_apt import _APTAPI
+from driwers.thorlabs_apt import _error_codes
 
 import ctypes
 import ctypes.util
@@ -1354,6 +1354,7 @@ def _load_library():
                 "Thorlabs' APT API only works on Windows.")
     lib = None
     filename = ctypes.util.find_library("APT")
+    #filename = 'C:\\Users\\korba\\PycharmProjects\\table_control\\mylib\driwers\\thorlabs_apt\\APT.dll'
     if (filename is not None):
         lib = ctypes.windll.LoadLibrary(filename)
     else:
