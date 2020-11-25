@@ -13,8 +13,8 @@ from scipy import optimize
 from scipy.integrate import cumtrapz
 from scipy.interpolate import interp1d
 from visualization import PlotDisplayer, Slider
-from newport import Controller
 import driwers as dr
+import random
 
 
 # переделать стоп button
@@ -128,16 +128,19 @@ def Vdiff(R, L):
 
 
 class ReadingDevise():
-    def __init__(self, pr, name, weightCoef, zeroWeight=0):
+    def __init__(self, pr, name, dataB, weightCoef, zeroWeight=0):
         self.zeroWeight = zeroWeight
         self.weightCoef = weightCoef
         self.pr = pr
         self.name = name
+        self.dataB = dataB
 
     def __del__(self):
         del self.pr
 
-    def ReadValue(self, memory=True, tau=0, lastTau=0, inExsist=False):
+    def ReadValue(self, memory=True, tau=0, lastTau=0, inExsist=False, DataB=None, whith_std=False):
+        if DataB == None:
+            DataB = self.dataB
         t0 = Time.time()
         t = 0
         i = 0
@@ -147,24 +150,28 @@ class ReadingDevise():
                 return 'problem'
             else:
                 weight = x * self.weightCoef - self.zeroWeight
-            DataBase.Wright({self.name: weight}, inExsist)
+            DataB.Wright({self.name: weight}, inExsist)
             t = Time.time() - t0
             i += 1
         j = 1
-        while DataBase.l - i - j >= 0 and DataBase.data.loc[DataBase.l - i - j, 'time'] > t0 - lastTau:
+        while DataB.l - i - j >= 0 and DataB.data.loc[DataB.l - i - j, 'time'] > t0 - lastTau:
             j += 1
         j -= 1
-        weight = DataBase.data.loc[range(DataBase.l - i - j, DataBase.l), self.name].mean()
-        # if (not memory) or inExsist:
-        #     DataBase.Clear(-i)  # переделать
-        return weight
+        weight = DataB.data.loc[range(DataB.l - i - j, DataB.l), self.name].mean()
+        if whith_std:
+            std = DataB.data.loc[range(DataB.l - i - j, DataB.l), self.name].std()
+            return (weight, std)
+        else:
+            return weight
 
     def SetCoefficient(self, real_weight, tau=10):  # не проверена
-        self.zeroCoef = real_weight / self.ReadValue(memory=False, tau=tau)
+        self.zeroCoef = real_weight / self.ReadValue(memory=False, tau=tau, DataB=DataBase())
         return self.zeroCoef
 
     def SetZeroWeight(self, tau=10, T=0):
-        self.zeroWeight += self.ReadValue(memory=False, tau=tau) - T
+        data = DataBase()
+        self.zeroWeight += self.ReadValue(tau=tau, DataB=data) - T
+        self.pogr = data.data[self.name].std()
         return self.zeroWeight
 
     def Test(self, n=5):
@@ -173,7 +180,7 @@ class ReadingDevise():
         t2 = np.array([])
         for i in range(n):
             t1 = np.append(t1, Time.time())
-            w = np.append(w, self.ReadValue(memory=False))
+            w = np.append(w, self.ReadValue(DataB=DataBase()))
             t2 = np.append(t2, Time.time())
         print('value=', w)
         print('start time=', t1)
@@ -808,8 +815,8 @@ class Puller():
             self.sim = None
             tg = dr.tensionGauge()
             pm = dr.powerMeter()
-        self.tg = ReadingDevise(tg, 'tension', weightCoef=-0.0075585384235655265)
-        self.pm = ReadingDevise(pm, 'power', weightCoef=1000)
+        self.tg = ReadingDevise(tg, 'tension', 'data_not_select', weightCoef=-0.0075585384235655265)
+        self.pm = ReadingDevise(pm, 'power', 'data_not_select', weightCoef=1000)
         self.ms = MotorSystem(simulate=simulate, simulator=self.sim)
         self.Ttrend = 0
         self.t_new = 0
@@ -992,14 +999,15 @@ class Puller():
         #     print(err)
         #     return err
 
-        T0 = self.tg.ReadValue(tau=2)
+        T0 = self.tg.ReadValue(tau=2, DataB=DataBase())
         b = T = T0
         self.ms.motorM.MoveTo(0, v, 1)
         i = 0
+        DataB = DataBase()
         while T - T0 < Tpr:
             i += 1
-            T = self.tg.ReadValue(lastTau=0.2, memory=True)
-            DataBase.Wright({'motorM': self.ms.motorM.Getposition()}, inExsist=True)
+            T = self.tg.ReadValue(lastTau=0.2, DataB=DataB)
+            DataB.Wright({'motorM': self.ms.motorM.Getposition()}, inExsist=True)
         self.ms.Stop('M')
         # print(i)
         self.ms.motorM.FogotMotion()
@@ -1007,11 +1015,10 @@ class Puller():
         x0 = self.ms.motorM.Getposition(analitic=True) + 1
         # print(x0)
         self.ms.motorM.MoveTo(x0 + 1.5)
-        data = DataBase.data.loc[range(DataBase.l - i, DataBase.l), ['time', 'tension', 'motorM']].copy()
-        data.reset_index(drop=True, inplace=True)
+        data = DataB.data.copy()
         # print(data)
         # print(errorFun(data, a, b, x0))
-        DataBase.Clear(-i)
+        # DataBase.Clear(-i)
         print("SetH_podgon", np.array([a, b, x0]))
         resalt = optimize.fmin(lambda x: errorFun(data, x[0], x[1], x[2]), np.array([a, b, x0]),
                                disp=False)  # errorFun(data, x[0], x[1], x[2])
@@ -1043,20 +1050,20 @@ class Puller():
             return sum(data_loc['error'])
 
         i = 0
+        DataB = DataBase()
         self.ms.motorM.MoveTo(xStart, 1, 1)
         self.ms.motorM.MoveTo(xFin, v, 1)
         while self.ms.motorM.IsInMotion():
             i += 1
-            self.tg.ReadValue()
-            DataBase.Wright({'motorM': self.ms.motorM.Getposition()}, inExsist=True)
+            self.tg.ReadValue(DataB=DataB)
+            DataB.Wright({'motorM': self.ms.motorM.Getposition()}, inExsist=True)
         self.ms.motorM.MoveTo(xStart, v, 1)
         while self.ms.motorM.IsInMotion():
             i += 1
-            self.tg.ReadValue()
-            DataBase.Wright({'motorM': self.ms.motorM.Getposition()}, inExsist=True)
-        data = DataBase.data.loc[range(DataBase.l - i, DataBase.l), ['time', 'tension', 'motorM']].copy()
-        data.reset_index(drop=True, inplace=True)
-        DataBase.Clear(-i)
+            self.tg.ReadValue(DataB=DataB)
+            DataB.Wright({'motorM': self.ms.motorM.Getposition()}, inExsist=True)
+        data = DataB.data.copy()
+        # DataBase.Clear(-i)
 
         resalt = optimize.fmin(lambda x: errorFun(data, x[0], x[1], x[2]), np.array([a, b, x0]), disp=False)
         a = resalt[0]
@@ -1184,42 +1191,6 @@ class Puller():
         self.ms.Test()
 
 
-class tikalka_base():
-    _controller = Controller(idProduct=0x4000, idVendor=0x104d)
-    ides = {'x': 3, 'y': 2, 'z': 1}
-
-    def __init__(self, name):
-        self.id = tikalka_base.ides[name]
-
-    def IsInMotion(self):
-        motor_done_cmd = '{}MD?'.format(self.id)
-        resp = tikalka_base._controller.command(motor_done_cmd)
-        return not int(resp[2])  # True if motor in motion
-
-    def move(self, value):
-        while self.IsInMotion():
-            pass
-        move_motor_cmd = '{}PR{}'.format(self.id, value)
-        # print(move_motor_cmd)
-        tikalka_base._controller.command(move_motor_cmd)
-
-    # def move_absolute(self, motor_id, value):
-    #     move_motor_cmd = '{}PA{}'.format(motor_id, value)
-    #     self._controller.command(move_motor_cmd)
-    #
-    # def get_home_position(self, motor_id):
-    #     return int(self._controller.command('{}DH?'.format(motor_id))[2:])
-    #
-    # def get_position(self, motor_id):
-    #     return int(self._controller.command('{}TP?'.format(motor_id))[2:])
-    #
-    # def set_home_position(self, motor_id, value):
-    #     self._controller.command('{}DH{}'.format(motor_id, value))
-    #
-    # def get_target(self, motor_id):
-    #     return int(self._controller.command('{}PA?'.format(motor_id))[2:])
-
-
 class simulator():
     dtS = 0.01
 
@@ -1238,6 +1209,7 @@ class simulator():
         self.L0 = L0
         self.weightCoff = weightCoff
         self.tStart = Time.time()
+        random.seed()
 
     def dist(self):
         return 200 - self.motorL.position - self.motorR.position
@@ -1258,6 +1230,7 @@ class simulator():
         else:
             ten = (-10000 - self.mZ.getCoord()[0]) * 0.001
         Time.sleep(simulator.dtS)
+        ten += random.uniform(-0.005, 0.005)
         return ten / self.weightCoff
 
     def GetPower(self):
@@ -1269,21 +1242,26 @@ class simulator():
         def __init__(self, name):
             self.name = name
             self.coord_last = 0
-            self.coord_new = 0
+            self.coord = 0
             self.t_st = Time.time()
             self.v = 100
 
         def getCoord(self):
-            dx = self.coord_new - self.coord_last
+            dx = self.coord - self.coord_last
             dt = Time.time() - self.t_st
             if self.v * dt > abs(dx):
-                return self.coord_new, False
+                return self.coord, False
             else:
                 return self.coord_last + dx / self.v, True
 
         def move(self, value):
-            self.coord_last = self.coord_new
-            self.coord_new = self.coord_last + value
+            self.coord_last = self.coord
+            self.coord = self.coord_last + int(value)
+            self.t_st=Time.time()
+
+        def move_to(self, value):
+            self.move(value - self.coord)
+
 
         def IsInMotion(self):
             return self.getCoord()[1]
@@ -1536,36 +1514,37 @@ class Time():
 
 
 class DataBase():
-    data = pd.DataFrame()
-    d_data = pd.DataFrame()
-    sg_data = pd.DataFrame()
-    val = {}
-    val_last = {}
-    l = 0
-    d_l = 0
-    dt = 0.1
-    t0 = 0
-    smTen = sglad()
+    def __init__(self):
+        self.data = pd.DataFrame()
+        self.d_data = pd.DataFrame()
+        self.sg_data = pd.DataFrame()
+        self.val = {}
+        self.val_last = {}
+        self.l = 0
+        self.d_l = 0
+        self.dt = 0.1
+        self.t0 = 0
+        self.smTen = sglad()
 
-    def start():
-        DataBase.data = pd.DataFrame()
-        DataBase.d_data = pd.DataFrame()
-        DataBase.val = {}
-        DataBase.val_last = {}
-        DataBase.l = 0
-        DataBase.d_l = 0
-        DataBase.t0 = Time.time()
+    def start(self):
+        self.data = pd.DataFrame()
+        self.d_data = pd.DataFrame()
+        self.val = {}
+        self.val_last = {}
+        self.l = 0
+        self.d_l = 0
+        self.t0 = Time.time()
 
-    def Apdete():
-        t = DataBase.t0 + (DataBase.d_l) * DataBase.dt
+    def Apdete(self):
+        t = self.t0 + (self.d_l) * self.dt
         endFl = False
-        while t < DataBase.data.loc[DataBase.l - 1, 'time']:
+        while t < self.data.loc[self.l - 1, 'time']:
             new = {}
-            for name in DataBase.d_data.keys():
-                x1 = DataBase.data.loc[DataBase.val_last[name], name]
-                x2 = DataBase.data.loc[DataBase.val[name], name]
-                t1 = DataBase.data.loc[DataBase.val_last[name], 'time']
-                t2 = DataBase.data.loc[DataBase.val[name], 'time']
+            for name in self.d_data.keys():
+                x1 = self.data.loc[self.val_last[name], name]
+                x2 = self.data.loc[self.val[name], name]
+                t1 = self.data.loc[self.val_last[name], 'time']
+                t2 = self.data.loc[self.val[name], 'time']
                 if t > t2:
                     endFl = True
                     break
@@ -1576,58 +1555,57 @@ class DataBase():
             if endFl:
                 break
             new['time'] = t
-            DataBase.d_data.loc[DataBase.d_l] = new
+            self.d_data.loc[self.d_l] = new
             if 'tension' in new and 'vR' in new:
-                DataBase.smTen.New(new['tension'], new['vR'])
-                DataBase.sg_data['tensionWgl'] = DataBase.smTen.wGl
-                DataBase.sg_data['tensionEXPgl'] = DataBase.smTen.expGl
-            t += DataBase.dt
-            DataBase.d_l += 1
+                self.smTen.New(new['tension'], new['vR'])
+                self.sg_data['tensionWgl'] = self.smTen.wGl
+                self.sg_data['tensionEXPgl'] = self.smTen.expGl
+            t += self.dt
+            self.d_l += 1
 
-    def Wright(elem, inExsist=False):
+    def Wright(self, elem, inExsist=False):
         t = Time.time()
         if inExsist:
-            DataBase.l -= 1
+            self.l -= 1
         elif not 'time' in elem.keys():
             elem['time'] = t
 
         for elName, elData in elem.items():
-            if not elName in DataBase.d_data.keys():
-                DataBase.d_data[elName] = elData
-                DataBase.val[elName] = DataBase.l
-            if (not inExsist) or (not elName in DataBase.data.keys()) or pd.isna(DataBase.data.loc[DataBase.l, elName]):
-                DataBase.val_last[elName] = DataBase.val[elName]
-                DataBase.val[elName] = DataBase.l
-            DataBase.data.loc[DataBase.l, elName] = elData
+            if not elName in self.d_data.keys():
+                self.d_data[elName] = elData
+                self.val[elName] = self.l
+            if (not inExsist) or (not elName in self.data.keys()) or pd.isna(self.data.loc[self.l, elName]):
+                self.val_last[elName] = self.val[elName]
+                self.val[elName] = self.l
+            self.data.loc[self.l, elName] = elData
+        self.l += 1
 
-        DataBase.l += 1
+    # def Clear(n=None, mas=None):
+    #     if mas == None:
+    #         if n == None:
+    #             mas = range(0, DataBase.l)
+    #         else:
+    #             if abs(n) > DataBase.l:
+    #                 n = DataBase.l * int(np.sign(n))
+    #             if n < 0:
+    #                 mas = range(DataBase.l - n, DataBase.l)
+    #             if n > 0:
+    #                 mas = range(0, n)
+    #     DataBase.data.drop(mas, inplace=True)
+    #     DataBase.data.reset_index(drop=True, inplace=True)
+    #     DataBase.l = DataBase.data.shape[0]
+    #
+    #     if DataBase.l == 0:
+    #         DataBase.start()
+    #         DataBase.smTen = sglad()
+    #     else:
+    #         l1 = int((DataBase.data['time'].iloc[-1] - DataBase.t0) // DataBase.dt)
+    #         DataBase.d_data.drop(range(l1, DataBase.d_l))
+    #         # DataBase.smTen.otcat(l1)
 
-    def Clear(n=None, mas=None):
-        if mas == None:
-            if n == None:
-                mas = range(0, DataBase.l)
-            else:
-                if abs(n) > DataBase.l:
-                    n = DataBase.l * int(np.sign(n))
-                if n < 0:
-                    mas = range(DataBase.l - n, DataBase.l)
-                if n > 0:
-                    mas = range(0, n)
-        DataBase.data.drop(mas, inplace=True)
-        DataBase.data.reset_index(drop=True, inplace=True)
-        DataBase.l = DataBase.data.shape[0]
-
-        if DataBase.l == 0:
-            DataBase.start()
-            DataBase.smTen = sglad()
-        else:
-            l1 = int((DataBase.data['time'].iloc[-1] - DataBase.t0) // DataBase.dt)
-            DataBase.d_data.drop(range(l1, DataBase.d_l))
-            # DataBase.smTen.otcat(l1)
-
-    def Save():
-        Save(DataBase.data, name='crude.csv', dirSubName='main_data\\DATE')
-        Save(DataBase.d_data, name='time_smooth.csv', dirSubName='main_data\\DATE')
+    def Save(self):
+        Save(self.data, name='crude.csv', dirSubName='main_data\\DATE')
+        Save(self.d_data, name='time_smooth.csv', dirSubName='main_data\\DATE')
 
 
 class Tikalka():
@@ -1643,14 +1621,155 @@ class Tikalka():
             self.sim = None
             tg = dr.tensionGauge()
             pm = dr.powerMeter()
-            self.motX = tikalka_base('x')
-            self.motY = tikalka_base('y')
-            self.motZ = tikalka_base('z')
-        self.tg = ReadingDevise(tg, 'tension', weightCoef=-0.0075585384235655265)
-        self.pm = ReadingDevise(pm, 'power', weightCoef=1000)
+            self.motX = dr.tikalka_base('x')
+            self.motY = dr.tikalka_base('y')
+            self.motZ = dr.tikalka_base('z')
+        self.tg = ReadingDevise(tg, 'tension', 'data_not_select', weightCoef=-0.0075585384235655265)
+        self.pm = ReadingDevise(pm, 'power', 'data_not_select', weightCoef=1000)
+        self.tg.SetZeroWeight(5)
 
-    def FindZero(self, Tpr=0.01, zapas=100, step=10):
-        T0 = self.tg.ReadValue(tau=5)
-        T=T0
-        while (T - T0 < Tpr):
+    def FindZero(self, zapas=60, tochn=20, step=200, tau1=0.5):
+        DataB = DataBase()
+        Tpr = 5 * self.tg.pogr
+        T = 0
+        while (T - 0 < Tpr):
             self.motZ.move(-step)
+            t = Time.time()
+            while self.motZ.IsInMotion():
+                self.tg.ReadValue(DataB=DataB)
+            T = self.tg.ReadValue(lastTau=Time.time() - t, DataB=DataB)
+            # print(self.motZ.getCoord()[0], T)
+        while step > tochn:
+            self.motZ.move(step)
+            DataB = DataBase()
+            while self.motZ.IsInMotion():
+                self.tg.ReadValue(DataB=DataB)
+            T = self.tg.ReadValue(tau=tau1, DataB=DataB)
+            dT = DataB.data['tension'].std()
+            # print(self.motZ.getCoord()[0], T)
+            if not T - dT > 0:
+                self.motZ.move(-step)
+                step = step / 2
+        self.motZ.move(zapas + 2 * step)
+
+    def SetT(self, T, dT):
+        dt_lim = 5
+        DataB = DataBase()
+        step = 50
+        tau1 = 0.3
+        Ttec = self.tg.ReadValue(DataB=DataB)
+        sign = np.sign(T - Ttec)
+        while (T - Ttec) * sign > 0:
+            self.motZ.move(-sign * step)
+            t = Time.time()
+            while self.motZ.IsInMotion():
+                self.tg.ReadValue(DataB=DataB)
+            Ttec = self.tg.ReadValue(lastTau=Time.time() - t, DataB=DataB)
+            # print(self.motZ.getCoord()[0], Ttec)
+        while step >= 2:
+            DataB = DataBase()
+            t0 = Time.time()
+            i = 0
+            while i < 3 or (dTtec >= dT and abs(Ttec - T) < dTtec and Time.time() - t0 < dt_lim):
+                self.tg.ReadValue(DataB=DataB)
+                Ttec = DataB.data['tension'].mean()
+                dTtec = DataB.data['tension'].std()
+                i += 1
+            print(self.motZ.getCoord()[0], Ttec, dTtec, Time.time(), step)
+            if abs(Ttec - T) < dT:
+                break
+            if Time.time() - t0 > dt_lim:
+                print('time limit problem')
+                break
+            sign = np.sign(T - Ttec)
+            step = step // 2 + step % 2
+            self.motZ.move(-step * sign)
+        return dTtec
+
+    def meserFixT(self, T, dT, tau):
+        self.SetT(T, dT)
+        #Time.sleep(1)
+        P, dP = self.pm.ReadValue(tau=tau, whith_std=True)
+        self.FindZero(tau1=0.3)
+        return P, dP
+
+    def Golden_Section_Method(self, y, eps, T, dT, tau0=1):
+        tau1 = 10
+        i = 0
+        coef = (math.sqrt(5) - 1) / 2
+        coef2 = (math.sqrt(5) + 1) / 2
+        coef3 = 1 - coef2
+        y0=self.motY.coord
+
+        sc, poc = sa, pa = self.meserFixT(T, dT, tau0)
+        c=a=y0
+        self.motY.move(y)
+        d=b=a+y
+        sd, pod = sb, pb = self.meserFixT(T, dT, tau0)
+        if sb <= sa:
+            while sb <= sa:
+                y *= coef2
+                a, sa, pa = c, sc, poc
+                c, sc, poc = b, sb, pb
+                b+=y
+                self.motY.move_to(b)
+                sb, pb = self.meserFixT(T, dT, tau0)
+                i+=1
+            d=a+y
+            self.motY.move_to(d)
+            sd, pd = self.meserFixT(T, dT, tau0)
+        else:
+            self.motY.move(-y)
+            while sb > sa:
+                y *= coef2
+                sb, pb = sd, pod
+                sd, pod = sa, pa
+                a -= y
+                sa, pa = self.meserFixT(T, dT, tau0)
+                i-=1
+            c = b - y
+            self.motY.move_to(c)
+            sc, pc = self.meserFixT(T, dT, tau0)
+
+        pogr = max(poc, pod)
+        while y > eps:
+            if sd < sc:
+                b = d
+                d = c
+                c = b - (b - a) * coef
+                sd = sc
+                self.motY.move_to(c)
+                sc, poc = self.meserFixT(T, dT, tau0)
+            else:
+                a = c
+                c = d
+                d = a + (b - a) * coef
+                sc = sd
+                self.motY.move_to(d)
+                sd, pod = self.meserFixT(T, dT, tau0)
+            # print(("     {0:.0f}    || {1:.4f} || {2:.4f}   || {3:.4f} || {4:.4f}").format(iteration - 1, x_min,
+            #                                                                                function_f(x_min), x_max,
+            #                                                                                function_f(x_max)))
+
+    def Shup(self, Tmax):
+        data = DataBase()
+        step = 100
+        i = 0
+        T = self.tg.ReadValue(DataB=data)
+        self.pm.ReadValue(DataB=data, inExsist=True)
+        while T < Tmax:
+            self.motZ.move(-step)
+            while self.motZ.IsInMotion():
+                T = self.tg.ReadValue(DataB=data)
+                self.pm.ReadValue(DataB=data, inExsist=True)
+            i += 1
+        self.tg.ReadValue(DataB=data)
+        self.pm.ReadValue(DataB=data, inExsist=True)
+        for j in range(i):
+            self.motZ.move(step)
+            while self.motZ.IsInMotion():
+                self.tg.ReadValue(DataB=data)
+                self.pm.ReadValue(DataB=data, inExsist=True)
+        return data
+
+    # def MeserProf(self):

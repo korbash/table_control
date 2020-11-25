@@ -2,7 +2,9 @@ from driwers import thorlabs_apt as apt
 from driwers.TLPMall.TLPM import TLPM
 from ctypes import c_uint32, byref, create_string_buffer, c_bool, c_int, c_double  # , c_void
 import serial
+from driwers.newport import Controller
 import time
+
 
 def isfloat(value):
     try:
@@ -10,6 +12,7 @@ def isfloat(value):
         return True
     except ValueError:
         return False
+
 
 class motor(apt.Motor):
     def __init__(self, motor_id):
@@ -104,3 +107,44 @@ class tensionGauge():
             # print(string)
         weight = float(string[0:-2])
         return weight
+
+
+class tikalka_base():
+    _controller = Controller(idProduct=0x4000, idVendor=0x104d)
+    ides = {'x': 3, 'y': 2, 'z': 1}
+
+    def __init__(self, name):
+        self.id = tikalka_base.ides[name]
+        self.coord = 0
+
+    def IsInMotion(self):
+        motor_done_cmd = '{}MD?'.format(self.id)
+        resp = tikalka_base._controller.command(motor_done_cmd)
+        return not int(resp[2])  # True if motor in motion
+
+    def move(self, value):
+        while self.IsInMotion():
+            pass
+        move_motor_cmd = '{}PR{}'.format(self.id, int(value))
+        # print(move_motor_cmd)
+        tikalka_base._controller.command(move_motor_cmd)
+        self.coord += int(value)
+
+    def move_to(self, value):
+        self.move(value - self.coord)
+
+    # def move_absolute(self, motor_id, value):
+    #     move_motor_cmd = '{}PA{}'.format(motor_id, value)
+    #     self._controller.command(move_motor_cmd)
+    #
+    # def get_home_position(self, motor_id):
+    #     return int(self._controller.command('{}DH?'.format(motor_id))[2:])
+    #
+    # def get_position(self, motor_id):
+    #     return int(self._controller.command('{}TP?'.format(motor_id))[2:])
+    #
+    # def set_home_position(self, motor_id, value):
+    #     self._controller.command('{}DH{}'.format(motor_id, value))
+    #
+    # def get_target(self, motor_id):
+    #     return int(self._controller.command('{}PA?'.format(motor_id))[2:])
