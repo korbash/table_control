@@ -1624,13 +1624,14 @@ class Tikalka():
             self.motX = dr.tikalka_base('x')
             self.motY = dr.tikalka_base('y')
             self.motZ = dr.tikalka_base('z')
-        self.tg = ReadingDevise(tg, 'tension', 'data_not_select', weightCoef=-0.0075585384235655265)
+        self.tg = ReadingDevise(tg, 'tension', 'data_not_select', weightCoef=-0.000395) #weightCoef=-0.0075585384235655265
         self.pm = ReadingDevise(pm, 'power', 'data_not_select', weightCoef=1000)
         self.tg.SetZeroWeight(5)
+        self.dataTY=DataBase()
 
     def FindZero(self, zapas=60, tochn=20, step=200, tau1=0.5):
         DataB = DataBase()
-        Tpr = 5 * self.tg.pogr
+        Tpr = 15 * self.tg.pogr
         T = 0
         while (T - 0 < Tpr):
             self.motZ.move(-step)
@@ -1639,6 +1640,7 @@ class Tikalka():
                 self.tg.ReadValue(DataB=DataB)
             T = self.tg.ReadValue(lastTau=Time.time() - t, DataB=DataB)
             # print(self.motZ.getCoord()[0], T)
+            print(T)
         while step > tochn:
             self.motZ.move(step)
             DataB = DataBase()
@@ -1647,6 +1649,7 @@ class Tikalka():
             T = self.tg.ReadValue(tau=tau1, DataB=DataB)
             dT = DataB.data['tension'].std()
             # print(self.motZ.getCoord()[0], T)
+            print(T)
             if not T - dT > 0:
                 self.motZ.move(-step)
                 step = step / 2
@@ -1665,7 +1668,7 @@ class Tikalka():
             while self.motZ.IsInMotion():
                 self.tg.ReadValue(DataB=DataB)
             Ttec = self.tg.ReadValue(lastTau=Time.time() - t, DataB=DataB)
-            # print(self.motZ.getCoord()[0], Ttec)
+            # print( Ttec)
         while step >= 2:
             DataB = DataBase()
             t0 = Time.time()
@@ -1675,7 +1678,7 @@ class Tikalka():
                 Ttec = DataB.data['tension'].mean()
                 dTtec = DataB.data['tension'].std()
                 i += 1
-            print(self.motZ.getCoord()[0], Ttec, dTtec, Time.time(), step)
+            print( Ttec, dTtec, Time.time(), step)
             if abs(Ttec - T) < dT:
                 break
             if Time.time() - t0 > dt_lim:
@@ -1700,6 +1703,7 @@ class Tikalka():
         coef2 = (math.sqrt(5) + 1) / 2
         coef3 = 1 - coef2
         y0=self.motY.coord
+        dataTY=DataBase()
 
         sc, poc = sa, pa = self.meserFixT(T, dT, tau0)
         c=a=y0
@@ -1714,6 +1718,7 @@ class Tikalka():
                 b+=y
                 self.motY.move_to(b)
                 sb, pb = self.meserFixT(T, dT, tau0)
+                dataTY.Wright({'y': b, 'power': sb, 'powerStd': pb})
                 i+=1
             d=a+y
             self.motY.move_to(d)
@@ -1740,6 +1745,7 @@ class Tikalka():
                 sd = sc
                 self.motY.move_to(c)
                 sc, poc = self.meserFixT(T, dT, tau0)
+                dataTY.Wright({'y': c, 'power': sc, 'powerStd': poc})
             else:
                 a = c
                 c = d
@@ -1747,9 +1753,11 @@ class Tikalka():
                 sc = sd
                 self.motY.move_to(d)
                 sd, pod = self.meserFixT(T, dT, tau0)
+                dataTY.Wright({'y': d, 'power': sd, 'powerStd': pod})
             # print(("     {0:.0f}    || {1:.4f} || {2:.4f}   || {3:.4f} || {4:.4f}").format(iteration - 1, x_min,
             #                                                                                function_f(x_min), x_max,
             #                                                                                function_f(x_max)))
+        return (a+b)/2, dataTY.data
 
     def Shup(self, Tmax):
         data = DataBase()
