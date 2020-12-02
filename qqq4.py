@@ -1,8 +1,8 @@
 from korbash_lib import Tikalka, Time, DataBase
 data=DataBase()
 Time.SetZeroTime()
-# Time.freez()
-tk = Tikalka() #simulate=True
+Time.freez()
+tk = Tikalka(simulate=True) #simulate=True
 # print(tk.motZ.getCoord()[0])
 print(tk.tg.ReadValue(DataB=data))
 tk.FindZero(zapas=0)
@@ -14,6 +14,7 @@ tk.SetT(0.7,0.01)
 # print(tk.motZ.getCoord()[0])
 print(tk.tg.ReadValue(tau=10,DataB=data))
 tk.FindZero(zapas=100)
+print(tk.tg.ReadValue(tau=10,DataB=data))
 # print(tk.motZ.coord)
 # for i in range(1000):
 #     print(tk.tg.ReadValue(DataB=DataBase()))

@@ -1640,7 +1640,7 @@ class Tikalka():
                 self.tg.ReadValue(DataB=DataB)
             T = self.tg.ReadValue(lastTau=Time.time() - t, DataB=DataB)
             # print(self.motZ.getCoord()[0], T)
-            print(T)
+            # print(T)
         while step > tochn:
             self.motZ.move(step)
             DataB = DataBase()
@@ -1649,7 +1649,7 @@ class Tikalka():
             T = self.tg.ReadValue(tau=tau1, DataB=DataB)
             dT = DataB.data['tension'].std()
             # print(self.motZ.getCoord()[0], T)
-            print(T)
+            # print(T)
             if not T - dT > 0:
                 self.motZ.move(-step)
                 step = step / 2
@@ -1678,7 +1678,7 @@ class Tikalka():
                 Ttec = DataB.data['tension'].mean()
                 dTtec = DataB.data['tension'].std()
                 i += 1
-            print( Ttec, dTtec, Time.time(), step)
+            # print( Ttec, dTtec, Time.time(), step)
             if abs(Ttec - T) < dT:
                 break
             if Time.time() - t0 > dt_lim:
@@ -1778,6 +1778,6 @@ class Tikalka():
             while self.motZ.IsInMotion():
                 self.tg.ReadValue(DataB=data)
                 self.pm.ReadValue(DataB=data, inExsist=True)
-        return data
+        return data.data
 
     # def MeserProf(self):
