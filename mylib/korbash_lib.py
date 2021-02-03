@@ -134,8 +134,6 @@ class ReadingDevise():
         self.pr = pr
         self.name = name
         self.dataB = dataB
-        if self.dataB == None:
-            self.dataB = DataBase()
 
     def __del__(self):
         del self.pr
@@ -817,17 +815,13 @@ class Puller():
             self.sim = None
             tg = dr.tensionGauge()
             pm = dr.powerMeter()
-        self.tg = ReadingDevise(tg, 'tension', None, weightCoef=-0.0075585384235655265)
-        self.pm = ReadingDevise(pm, 'power', None, weightCoef=1000)
+        self.tg = ReadingDevise(tg, 'tension', 'data_not_select', weightCoef=-0.0075585384235655265)
+        self.pm = ReadingDevise(pm, 'power', 'data_not_select', weightCoef=1000)
         self.ms = MotorSystem(simulate=simulate, simulator=self.sim)
         self.Ttrend = 0
         self.t_new = 0
         self.T_new = 0
-        self.T_last = 0
-        self.Tst_last = 0
-        self.Tst_new = 0
         self.dv_new = 0
-        self.dv_last = 0
         self.trueKmas = np.array([])
         self.Clear()
         self.v = 5
@@ -841,7 +835,6 @@ class Puller():
 
         self.sg = sglad(0.08, 0.2)
         self.MotorsControlStart()
-        Time.SetZeroTime()
         '''self.Slider = {}
         self.slidersBtn = {}'''
 
@@ -927,38 +920,12 @@ class Puller():
         if self.dv < 0:
             self.dv = 0
         return self.dv
-    def obrSvas3(self, tau, Kp,Ki,Kd):
-        dT = self.Tst_new - self.Tprog(tau)
-        dT1 = self.Tst_last - self.T_new
-        dT2 = self.Tst_last2 - self.T_last
-        Kp=Kp /(Puller.kStr / self.ms.Distance() * tau)
-        Ppart=Kp*(dT-dT1)
-        Ipart=Kp*Ki*tau*dT
-        Dpart=Kp*Kd/tau*(dT-2*dT1+dT2)
-        self.dv+=Ppart+Ipart+Dpart
 
-
-
-        # dt=self.t_new-self.t_last
-        # if dv-dv2==0:
-        #     kol=1
-        # else:
-        #     kol=np.arctan(abs((dv+dv2)/(dv-dv2)))/np.pi*2
-        # self.dv = self.dv_new + dT/(kof*Puller.kStr/self.ms.Distance())/dt-dv/2*(1+kol)
-        # if self.dv < 0:
-        #     self.dv = 0
-        return self.dv
-
-    def meser_param(self, dv,Tst):
+    def meser_param(self, dv):
         self.t_last = self.t_new
         self.t_new = Time.time()
-        self.T_last2 = self.T_last
         self.T_last = self.T_new
         self.T_new = self.Tprog(0)
-        self.Tst_last2 = self.Tst_last
-        self.Tst_last = self.Tst_new
-        self.Tst_new = Tst
-        self.dv_last2 = self.dv_last
         self.dv_last = self.dv_new
         self.dv_new = dv
 
@@ -971,8 +938,7 @@ class Puller():
         while abs(wide - w) > dw:
             w = self.tg.ReadValue(tau=tau)
             dx = (wide - w) / k
-            if not quiet:
-                print(w, '  ', w - wide, '  ', dx)
+            if not quiet: print(w, '  ', w - wide, '  ', dx)
             self.ms.motorR.MoveTo(self.ms.motorR.Getposition(analitic=True) - dx, a=1)
             while self.ms.motorR.IsInMotion():
                 pass
@@ -1124,7 +1090,7 @@ class Puller():
         self.isUp = False
         self.stFl = False
 
-    def PulMotorsControl(self, NewMosH, NewT, upFl=True, stFl=False, vsFl=False, dhKof=0.5, ah=9, Kp=1,Ki=1,Kd=1):
+    def PulMotorsControl(self, NewMosH, NewT, upFl=True, stFl=False, vsFl=False, dhKof=0.5, ah=9, obrKof=0.0001):
         self.Read()
 
         NewMosH += self.ms.x0
@@ -1183,9 +1149,9 @@ class Puller():
                     self.tEnd2 = float('+inf')
                 else:
                     if self.tact > 4:
-                        self.meser_param(self.dv,NewT)
+                        self.meser_param(self.dv)
                         if vsFl and self.tact > 6:
-                            self.dv = self.obrSvas3(self.tFinish - self.tStart, Kp,Ki,Kd)
+                            self.dv = self.obrSvas2(NewT, self.tFinish - self.tStart, obrKof)
                         # print(self.v, self.a, self.dv, self.t_new, self.t_last, self.T_new, self.T_last)
                     self.stFl = self.ms.PulMove(self.v, self.a, self.dv, stFl)
                     self.sg.NewStTime()
@@ -1226,7 +1192,7 @@ class Puller():
 
 
 class simulator():
-    dtS = 0.001
+    dtS = 0.01
 
     def __init__(self, L0, k0, weightCoff, l0=10):
         self.motorL = self.motSim()
@@ -1243,47 +1209,32 @@ class simulator():
         self.L0 = L0
         self.weightCoff = weightCoff
         self.tStart = Time.time()
-        self.hotFL = False
-        self.lastT = None
-        self.moH = 15
-        self.dx = 0
         random.seed()
 
     def dist(self):
         return 200 - self.motorL.position - self.motorR.position
 
     def GetTention(self):
-        if self.hotFL:
-            if self.lastT == None:
-                self.lastT = Time.time()
-            else:
-                h0 = 0.1
-                h = self.motorM.position - self.moH
-                dt = Time.time() - self.lastT
-                self.lastT = Time.time()
-                E = pow(h0 / h, 4) * dt
-                self.dx += E
-        if self.dist() - self.dx < self.l0:
+        if self.dist() < self.l0:
             ten = 0
         else:
             k = self.k0 / (self.dist() + self.L0)
-            ten = (self.dist() - self.dx - self.l0) * k
+            ten = (self.dist() - self.l0) * k
             # print(k,ten)
-        Time.sleep(simulator.dtS/10)
-        ten = ten / self.weightCoff
-        return ten
+        Time.sleep(simulator.dtS)
+        return ten / self.weightCoff
 
     def GetTention2(self):
         if self.mZ.getCoord()[0] > -10000:
             ten = 0
         else:
             ten = (-10000 - self.mZ.getCoord()[0]) * 0.001
-        Time.sleep(simulator.dtS/10)
+        Time.sleep(simulator.dtS)
         ten += random.uniform(-0.005, 0.005)
         return ten / self.weightCoff
 
     def GetPower(self):
-        Time.sleep(simulator.dtS/10)
+        Time.sleep(simulator.dtS)
         return 3.8 * 10 ** -5
 
     class tic():
@@ -1306,10 +1257,11 @@ class simulator():
         def move(self, value):
             self.coord_last = self.coord
             self.coord = self.coord_last + int(value)
-            self.t_st = Time.time()
+            self.t_st=Time.time()
 
         def move_to(self, value):
             self.move(value - self.coord)
+
 
         def IsInMotion(self):
             return self.getCoord()[1]
@@ -1349,7 +1301,7 @@ class simulator():
         @property
         def is_in_motion(self):
             x, v, a, isMove = self.calcX_V_A()
-            Time.sleep(simulator.dtS/10)
+            Time.sleep(simulator.dtS)
             return isMove
 
         def calcX_V_A(self):
@@ -1736,7 +1688,7 @@ class Tikalka():
 
     def meserFixT(self, T, dT, tau):
         self.SetT(T, dT)
-        # Time.sleep(1)
+        #Time.sleep(1)
         P, dP = self.pm.ReadValue(tau=tau, whith_std=True)
         self.FindZero(tau1=0.3)
         return P, dP
@@ -1747,23 +1699,23 @@ class Tikalka():
         coef = (math.sqrt(5) - 1) / 2
         coef2 = (math.sqrt(5) + 1) / 2
         coef3 = 1 - coef2
-        y0 = self.motY.coord
+        y0=self.motY.coord
 
         sc, poc = sa, pa = self.meserFixT(T, dT, tau0)
-        c = a = y0
+        c=a=y0
         self.motY.move(y)
-        d = b = a + y
+        d=b=a+y
         sd, pod = sb, pb = self.meserFixT(T, dT, tau0)
         if sb <= sa:
             while sb <= sa:
                 y *= coef2
                 a, sa, pa = c, sc, poc
                 c, sc, poc = b, sb, pb
-                b += y
+                b+=y
                 self.motY.move_to(b)
                 sb, pb = self.meserFixT(T, dT, tau0)
-                i += 1
-            d = a + y
+                i+=1
+            d=a+y
             self.motY.move_to(d)
             sd, pd = self.meserFixT(T, dT, tau0)
         else:
@@ -1774,7 +1726,7 @@ class Tikalka():
                 sd, pod = sa, pa
                 a -= y
                 sa, pa = self.meserFixT(T, dT, tau0)
-                i -= 1
+                i-=1
             c = b - y
             self.motY.move_to(c)
             sc, pc = self.meserFixT(T, dT, tau0)

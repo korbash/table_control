@@ -78,7 +78,7 @@ class tensionGauge():
         self.Connect()
 
     def Connect(self):
-        self.port = serial.Serial(port="COM5", baudrate=115200, bytesize=8, timeout=2, stopbits=serial.STOPBITS_ONE)
+        self.port = serial.Serial(port="COM3", baudrate=115200, bytesize=8, timeout=2, stopbits=serial.STOPBITS_ONE)
         time.sleep(1)  # действительно нужно
         self.port.write(1)
         time.sleep(1)
