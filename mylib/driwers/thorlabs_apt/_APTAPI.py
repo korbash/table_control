@@ -99,9 +99,9 @@ def set_ctypes_argtypes(lib):
     lib.MOT_GetVelParamLimits.restype = c_long
     lib.MOT_SetHomeParams.argtypes = [c_long, c_long, c_long, c_float, c_float]
     lib.MOT_SetHomeParams.restype = c_long
-    lib.MOT_GetHomeParams.argtypes = [c_long, c_long_p, c_long_p, c_float_p, 
-            c_float_p]
-    lib.MOT_GetHomeParams.restype = c_long
+#     lib.MOT_GetHomeParams.argtypes = [c_long, c_long_p, c_long_p, c_float_p, 
+#             c_float_p]
+#     lib.MOT_GetHomeParams.restype = c_long
     lib.MOT_GetStatusBits.argtypes = [c_long, c_long_p]
     lib.MOT_GetStatusBits.restype = c_long
     lib.MOT_SetBLashDist.argtypes = [c_long, c_float]
@@ -110,8 +110,8 @@ def set_ctypes_argtypes(lib):
     lib.MOT_GetBLashDist.restype = c_long
     lib.MOT_SetMotorParams.argtypes = [c_long, c_long, c_long]
     lib.MOT_SetMotorParams.restype = c_long
-    lib.MOT_GetMotorParams.argtypes = [c_long, c_long_p, c_long_p]
-    lib.MOT_GetMotorParams.restype = c_long
+#     lib.MOT_GetMotorParams.argtypes = [c_long, c_long_p, c_long_p]
+#     lib.MOT_GetMotorParams.restype = c_long
     lib.MOT_SetStageAxisInfo.argtypes = [c_long, c_float, c_float, c_long, 
             c_float]
     lib.MOT_SetStageAxisInfo.restype = c_long

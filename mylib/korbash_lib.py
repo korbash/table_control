@@ -139,29 +139,30 @@ class ReadingDevise():
         del self.pr
 
     def ReadValue(self, memory=True, tau=0, lastTau=0, inExsist=False, DataB=None, whith_std=False):
-        if DataB == None:
-            DataB = self.dataB
-        t0 = Time.time()
+        #if DataB == None:
+        #    DataB = self.dataB
+        t0 = time.time()
         t = 0
         i = 0
         while t <= tau:
             x = self.pr.read()
+            #print('x=', x)
             if x == 'problem':
                 return 'problem'
             else:
                 weight = x * self.weightCoef - self.zeroWeight
-            DataB.Wright({self.name: weight}, inExsist)
-            t = Time.time() - t0
+            #DataB.Wright({self.name: weight}, inExsist)
+            t = time.time() - t0
             i += 1
-        j = 1
-        while DataB.l - i - j >= 0 and DataB.data.loc[DataB.l - i - j, 'time'] > t0 - lastTau:
-            j += 1
-        j -= 1
-        weight = DataB.data.loc[range(DataB.l - i - j, DataB.l), self.name].mean()
-        if whith_std:
-            std = DataB.data.loc[range(DataB.l - i - j, DataB.l), self.name].std()
-            return (weight, std)
-        else:
+        #j = 1
+        #while DataB.l - i - j >= 0 and DataB.data.loc[DataB.l - i - j, 'time'] > t0 - lastTau:
+        #  j += 1
+        #j -= 1
+        #eight = DataB.data.loc[range(DataB.l - i - j, DataB.l), self.name].mean()
+        # if whith_std:
+        #   std = DataB.data.loc[range(DataB.l - i - j, DataB.l), self.name].std()
+        #    return (weight, std)
+        #else:
             return weight
 
     def SetCoefficient(self, real_weight, tau=10):  # не проверена
@@ -443,8 +444,8 @@ class MotorSystem():
         else:
             print(dr.motor.list_available_devices())
             motL = dr.motor(90113196)
-            motR = dr.motor(90113195)
-            motM = dr.motor(90113197)
+            motR = dr.motor(90113197)
+            motM = dr.motor(90113195)
 
         self.motorL = Motor(motL, "motor L")
         self.motorR = Motor(motR, "motor R")
@@ -814,9 +815,13 @@ class Puller():
         else:
             self.sim = None
             tg = dr.tensionGauge()
+            time.sleep(0.001)
             pm = dr.powerMeter()
-        self.tg = ReadingDevise(tg, 'tension', 'data_not_select', weightCoef=-0.0075585384235655265)
-        self.pm = ReadingDevise(pm, 'power', 'data_not_select', weightCoef=1000)
+            time.sleep(0.001)
+        df = pd.DataFrame()
+        self.tg = ReadingDevise(tg, 'tension', df, weightCoef=-0.0075585384235655265)
+        time.sleep(0.001)
+        self.pm = ReadingDevise(pm, 'power', df, weightCoef=1000)
         self.ms = MotorSystem(simulate=simulate, simulator=self.sim)
         self.Ttrend = 0
         self.t_new = 0
@@ -1090,7 +1095,7 @@ class Puller():
         self.isUp = False
         self.stFl = False
 
-    def PulMotorsControl(self, NewMosH, NewT, upFl=True, stFl=False, vsFl=False, dhKof=0.5, ah=9, obrKof=0.0001):
+    def PulMotorsControl(self, NewMosH, NewT, upFl=True, stFl=False, vsFl=False, dhKof=0.5, ah=9, Ki=0.1,Kp=0.1,Kd=0.1):
         self.Read()
 
         NewMosH += self.ms.x0
@@ -1151,7 +1156,7 @@ class Puller():
                     if self.tact > 4:
                         self.meser_param(self.dv)
                         if vsFl and self.tact > 6:
-                            self.dv = self.obrSvas2(NewT, self.tFinish - self.tStart, obrKof)
+                            self.dv = self.obrSvas2(NewT, self.tFinish - self.tStart, (Ki + Kp + Kd)/3 )
                         # print(self.v, self.a, self.dv, self.t_new, self.t_last, self.T_new, self.T_last)
                     self.stFl = self.ms.PulMove(self.v, self.a, self.dv, stFl)
                     self.sg.NewStTime()

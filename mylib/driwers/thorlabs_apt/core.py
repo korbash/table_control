@@ -1354,6 +1354,7 @@ def _load_library():
                 "Thorlabs' APT API only works on Windows.")
     lib = None
     filename = ctypes.util.find_library("APT")
+    filename = 'C:\\Program Files\\Thorlabs\\Kinesis\\Thorlabs.APT.dll'
     #filename = 'C:\\Users\\korba\\PycharmProjects\\table_control\\mylib\driwers\\thorlabs_apt\\APT.dll'
     if (filename is not None):
         lib = ctypes.windll.LoadLibrary(filename)
@@ -1365,6 +1366,7 @@ def _load_library():
             lib = ctypes.windll.LoadLibrary(lib)
             if (lib is None):
                 raise Exception("Could not find shared library APT.dll.")
+    print(dir(lib))
     _APTAPI.set_ctypes_argtypes(lib)
     err_code = lib.APTInit()
     if (err_code != 0):

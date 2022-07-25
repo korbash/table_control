@@ -2,7 +2,7 @@ from driwers import thorlabs_apt as apt
 from driwers.TLPMall.TLPM import TLPM
 from ctypes import c_uint32, byref, create_string_buffer, c_bool, c_int, c_double  # , c_void
 import serial
-from driwers.newport import Controller
+# from driwers.newport import Controller
 import time
 
 
@@ -78,7 +78,7 @@ class tensionGauge():
         self.Connect()
 
     def Connect(self):
-        self.port = serial.Serial(port="COM3", baudrate=115200, bytesize=8, timeout=2, stopbits=serial.STOPBITS_ONE)
+        self.port = serial.Serial(port="COM3", baudrate=115200)
         time.sleep(1)  # действительно нужно
         self.port.write(1)
         time.sleep(1)
@@ -109,29 +109,29 @@ class tensionGauge():
         return weight
 
 
-class tikalka_base():
-    _controller = Controller(idProduct=0x4000, idVendor=0x104d)
-    ides = {'x': 3, 'y': 2, 'z': 1}
+# class tikalka_base():
+#     _controller = Controller(idProduct=0x4000, idVendor=0x104d)
+#     ides = {'x': 3, 'y': 2, 'z': 1}
 
-    def __init__(self, name):
-        self.id = tikalka_base.ides[name]
-        self.coord = 0
+#     def __init__(self, name):
+#         self.id = tikalka_base.ides[name]
+#         self.coord = 0
 
-    def IsInMotion(self):
-        motor_done_cmd = '{}MD?'.format(self.id)
-        resp = tikalka_base._controller.command(motor_done_cmd)
-        return not int(resp[2])  # True if motor in motion
+#     def IsInMotion(self):
+#         motor_done_cmd = '{}MD?'.format(self.id)
+#         resp = tikalka_base._controller.command(motor_done_cmd)
+#         return not int(resp[2])  # True if motor in motion
 
-    def move(self, value):
-        while self.IsInMotion():
-            pass
-        move_motor_cmd = '{}PR{}'.format(self.id, int(value))
-        # print(move_motor_cmd)
-        tikalka_base._controller.command(move_motor_cmd)
-        self.coord += int(value)
+#     def move(self, value):
+#         while self.IsInMotion():
+#             pass
+#         move_motor_cmd = '{}PR{}'.format(self.id, int(value))
+#         # print(move_motor_cmd)
+#         tikalka_base._controller.command(move_motor_cmd)
+#         self.coord += int(value)
 
-    def move_to(self, value):
-        self.move(value - self.coord)
+#     def move_to(self, value):
+#         self.move(value - self.coord)
 
     # def move_absolute(self, motor_id, value):
     #     move_motor_cmd = '{}PA{}'.format(motor_id, value)

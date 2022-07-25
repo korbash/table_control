@@ -1,0 +1,11 @@
+pandas
+scipy
+ipywidgets
+PySimpleGUI
+bokeh
+jupyter-ui-poll
+pyserial
+pyusb
+matplotlib
+
+
