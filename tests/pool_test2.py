@@ -1,3 +1,6 @@
+from sys import path
+
+path += ['/home/korbash/projects/table_control/mylib']
 from korbash_lib import Puller
 import pandas as pd
 import numpy as np
@@ -10,16 +13,17 @@ while pl.ms.IsInMotion():
     pass
 t0 = time.time()
 t = t0
+stFl = False
 while t - t0 < 1:
     t = time.time()
     pl.Read()
     if not pl.ms.IsInMotion():
-        pl.ms.PulMove(10, 20, 0.5)
+        pl.ms.PulMove(10, 20, 0.5, stFl)
     time.sleep(0.01)
 
 print(pl.data)
 pl.data.plot(x='time', y=['motorL', 'motorR'])
 plt.show(block=True)
-pl.Clear2()
+pl.Clear()
 print('wwww')
 print(pl.data)

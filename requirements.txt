@@ -3,6 +3,7 @@ scipy
 ipywidgets
 PySimpleGUI
 bokeh
+jupyter_bokeh
 jupyter-ui-poll
 pyserial
 pyusb

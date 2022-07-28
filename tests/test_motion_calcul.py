@@ -1,4 +1,7 @@
-from korbash_lib import Puller, Time, self
+from sys import path
+
+path += ['/home/korbash/projects/table_control/mylib']
+from korbash_lib import Puller, Time
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
