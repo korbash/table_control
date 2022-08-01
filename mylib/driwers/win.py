@@ -1,5 +1,5 @@
-from driwers import thorlabs_apt as apt
-from driwers.TLPMall.TLPM import TLPM
+from . import thorlabs_apt as apt
+from .TLPMall.TLPM import TLPM
 from ctypes import c_uint32, byref, create_string_buffer, c_bool, c_int, c_double  # , c_void
 import serial
 # from driwers.newport import Controller

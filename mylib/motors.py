@@ -5,6 +5,7 @@ import ipywidgets
 from IPython.display import display
 import PySimpleGUI as sg
 from .utilities import *
+from . import driwers as dr
 
 
 class Motor():

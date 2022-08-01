@@ -1,4 +1,4 @@
-import mylib.driwers as dr
+from . import driwers as dr
 from .utilities import *
 from .visualization import PlotDisplayer, Slider
 from .sglad import sglad

@@ -1,5 +1,5 @@
-from driwers.thorlabs_apt import _APTAPI
-from driwers.thorlabs_apt import _error_codes
+from . import _APTAPI
+from . import _error_codes
 
 import ctypes
 import ctypes.util

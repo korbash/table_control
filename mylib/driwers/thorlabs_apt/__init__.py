@@ -1,1 +1,1 @@
-from driwers.thorlabs_apt.core import *
+from .core import *
