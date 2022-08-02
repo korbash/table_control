@@ -37,10 +37,6 @@ class Puller():
         self.pm = ReadingDevise(pm, 'power', weightCoef=1000)
         self.ms = MotorSystem(simulate=simulate, simulator=self.sim)
         self.pidI = 0
-        self.Ttrend = 0
-        self.t_new = 0
-        self.T_new = 0
-        self.dv_new = 0
         self.trueKmas = np.array([])
         self.Clear()
         self.v = 5
@@ -125,43 +121,12 @@ class Puller():
         return self.Ttrend * tau + self.data.loc[len(self.data) - 1,
                                                  'tensionEXPgl']
 
-    def obrSvas(self, T, tau):
-        dt = self.t_new - self.t_last
-        dT = self.T_new - self.T_last
-        progres = dT / dt * np.sign(T - self.T_last)
-        dT2 = T - self.Tprog(tau / 2)
-        trueK0 = max(self.dv_last / (progres * tau), 0.0001)
-        self.trueKmas = np.append(self.trueKmas, trueK0)
-        self.times = np.append(self.times, self.t_new)
-        trueK = Exp_everage(self.trueKmas, self.times, tau=40)
-        self.trueKmasGl = np.append(self.trueKmasGl, trueK)
-        print(trueK0, trueK)
-        self.dv = self.dv_last + trueK * dT2 / 4
-        if self.dv < 0:
-            self.dv = 0
-        return self.dv
-
-    def obrSvas2(self, T, tau, kof):
-        dT = T - self.Tprog(tau * 3 / 2)
-        self.dv = self.dv_last + kof * dT
-        if self.dv < 0:
-            self.dv = 0
-        return self.dv
-
-    def obrSvas3(self, T, Ki, Kp, Kd):
+    def obrSvas(self, T, Ki, Kp, Kd):
         Tnow = self.sg.level
         dT = self.sg.trend
         E = T - Tnow
         self.pidI += E * Ki * Kp
         return Kp * (E + Kd * dT) + self.pidI
-
-    def meser_param(self, dv):
-        self.t_last = self.t_new
-        self.t_new = Time.time()
-        self.T_last = self.T_new
-        self.T_new = self.Tprog(0)
-        self.dv_last = self.dv_new
-        self.dv_new = dv
 
     def SetW(self,
              wide,
@@ -430,9 +395,8 @@ class Puller():
                     self.tEnd2 = float('+inf')
                 else:
                     if self.tact > 4:
-                        self.meser_param(self.dv)
                         if vsFl and self.tact > 6:
-                            self.dv = self.obrSvas3(NewT, Ki, Kp, Kd)
+                            self.dv = self.obrSvas(NewT, Ki, Kp, Kd)
                             # self.tFinish - self.tStart,
                         # print(self.v, self.a, self.dv, self.t_new, self.t_last, self.T_new, self.T_last)
                     self.stFl = self.ms.PulMove(self.v, self.a, self.dv, stFl)
