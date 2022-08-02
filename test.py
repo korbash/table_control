@@ -1,3 +1,3 @@
-import thorlabs_apt as apt
+import statistics
 
-print(apt.list_available_devices())
+print([1,2,3] + 1)

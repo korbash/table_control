@@ -7,6 +7,15 @@ from mylib import *
 # переделать стоп button
 
 
+def Vdiff(R, L):
+    r0 = 125.0 / 2
+    v0 = 0.01 * 0.8 * 3
+    vf = v0 * 2
+    rl = r0 / (np.sqrt(vf / v0) - 1)
+    L0 = 15
+    return v0 * (r0 + rl)**2 / (R + rl)**2 * (L / L0)
+
+
 class Puller():
     kStr = 58591.17  # gram/mm * mm жёзскость пружины
 
@@ -21,14 +30,13 @@ class Puller():
             Time.sleep(0.001)
             pm = dr.powerMeter()
             Time.sleep(0.001)
-        df = pd.DataFrame()
         self.tg = ReadingDevise(tg,
                                 'tension',
-                                df,
                                 weightCoef=-0.0075585384235655265)
         Time.sleep(0.001)
-        self.pm = ReadingDevise(pm, 'power', df, weightCoef=1000)
+        self.pm = ReadingDevise(pm, 'power', weightCoef=1000)
         self.ms = MotorSystem(simulate=simulate, simulator=self.sim)
+        self.pidI = 0
         self.Ttrend = 0
         self.t_new = 0
         self.T_new = 0
@@ -77,8 +85,8 @@ class Puller():
         param['motorL'] = self.ms.motorL.Getposition()
         param['motorR'] = self.ms.motorR.Getposition()
         param['motorM'] = self.ms.motorM.Getposition()
-        param['power'] = self.pm.read()
-        param['tension'] = self.tg.read()
+        param['power'] = self.pm.ReadValue()
+        param['tension'] = self.tg.ReadValue()
         tFn = Time.time()
         param['dt'] = tFn - tSt
         param['x'], param['L'] = self.ms.calcX_L()
@@ -140,6 +148,13 @@ class Puller():
             self.dv = 0
         return self.dv
 
+    def obrSvas3(self, T, Ki, Kp, Kd):
+        Tnow = self.sg.level
+        dT = self.sg.trend
+        E = T - Tnow
+        self.pidI += E * Ki * Kp
+        return Kp * (E + Kd * dT) + self.pidI
+
     def meser_param(self, dv):
         self.t_last = self.t_new
         self.t_new = Time.time()
@@ -162,7 +177,7 @@ class Puller():
         while abs(wide - w) > dw:
             w = self.tg.ReadValue(tau=tau)
             dx = (wide - w) / k
-            if not quiet: print(w, '  ', w - wide, '  ', dx)
+            if not quiet: print('w= ', w, ', dw= ', w - wide, ', dx=  ', dx)
             self.ms.motorR.MoveTo(self.ms.motorR.Getposition(analitic=True) -
                                   dx,
                                   a=1)
@@ -417,9 +432,8 @@ class Puller():
                     if self.tact > 4:
                         self.meser_param(self.dv)
                         if vsFl and self.tact > 6:
-                            self.dv = self.obrSvas2(NewT,
-                                                    self.tFinish - self.tStart,
-                                                    (Ki + Kp + Kd) / 3)
+                            self.dv = self.obrSvas3(NewT, Ki, Kp, Kd)
+                            # self.tFinish - self.tStart,
                         # print(self.v, self.a, self.dv, self.t_new, self.t_last, self.T_new, self.T_last)
                     self.stFl = self.ms.PulMove(self.v, self.a, self.dv, stFl)
                     self.sg.NewStTime()

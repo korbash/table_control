@@ -2,55 +2,8 @@ import time
 import math
 import numpy as np
 import pandas as pd
-from scipy import optimize
-from scipy.integrate import cumtrapz
-from scipy.interpolate import interp1d
+import statistics
 from .sglad import sglad
-
-
-def caunter(r0=62.5, Ltorch=0.6, lw=30, rw=20, dr=1):
-    def integr(y, x):
-        inte = np.hstack((0, cumtrapz(y, x)))
-        return inte
-
-    def Map(fun, x):
-        return np.array(list(map(fun, x)))
-
-    lw = lw - Ltorch
-    radius = np.linspace(2.5, 62.5, 13)
-    thetas = np.array([
-        97.9162688, 36.01154809, 22.44529847, 16.77319816, 14.08756338,
-        13.28444282, 14.76885344, 19.37716274, 27.14935304, 37.4940508,
-        49.76789206, 63.43683519, 78.09095269
-    ]) / 5
-    Theta = interp1d(radius, thetas, kind='cubic')
-    r = np.arange(rw, r0, dr)
-    dz = Map(lambda x: 1 / float(Theta(x)), r)
-    z = integr(dz, r)
-    z = z[-1] - z
-    inte = integr((r**2), z)
-    # L = 1 / (r ** 2) * (rw ** 2 * (lw) + 2 * (-inte[-1] + inte))
-    L = 1 / (r**2) * (rw**2 * (lw) + 2 * (-inte))
-    x = 2 * z + L - L[-1]
-
-    x = np.append(x, -0.1)
-    r = np.append(r, r[-1])
-    L = np.append(L, L[-1])
-    R_x = interp1d(x, r, kind='cubic')
-    L_x = interp1d(x, L, kind='cubic')
-    xMax = x[0]
-    return L_x, R_x, xMax
-
-
-def findEndPoint(xSt, lSt, alf, L_x, xMax):
-    if alf == 0:
-        x = xSt
-    else:
-        x = optimize.root_scalar(lambda x: L_x(x) / 2 -
-                                 ((x - xSt) / alf + lSt),
-                                 bracket=[-20, xMax + 20],
-                                 method='brentq').root
-    return x, L_x(x) / 2 - lSt
 
 
 def Save(data,
@@ -72,20 +25,6 @@ def Save(data,
     print('data saved')
 
 
-def Everage(x, t, tau=1):
-    dt = 0
-    i = 0
-    l = len(t)
-    tmax = t[l - 1]
-    xsr = 0
-    while (dt < tau and i < l):
-        i += 1
-        dt = tmax - t[l - i]
-        xsr += x[l - i]
-    xsr = xsr / i
-    return xsr
-
-
 def Exp_everage(x, t, tau=1):
     dt = 0
     i = 0
@@ -100,28 +39,6 @@ def Exp_everage(x, t, tau=1):
         csum += c
     xsr = xsr / csum
     return xsr
-
-
-def isfloat(value):
-    try:
-        float(value)
-        return True
-    except ValueError:
-        return False
-
-
-def Vdiff(R, L):
-    # A = 28.0
-    # V0 = 3
-    r0 = 125.0 / 2
-    v0 = 0.01 * 0.8 * 3
-    vf = v0 * 2
-    rl = r0 / (np.sqrt(vf / v0) - 1)
-    ##  rl = 0
-    L0 = 15
-
-    ## return v0
-    return v0 * (r0 + rl)**2 / (R + rl)**2 * (L / L0)
 
 
 class Time():
@@ -251,24 +168,46 @@ class DataBase():
 
 
 class ReadingDevise():
-    def __init__(self, pr, name, dataB, weightCoef, zeroWeight=0):
+    def __init__(self, pr, name, weightCoef, zeroWeight=0):
         self.zeroWeight = zeroWeight
         self.weightCoef = weightCoef
         self.pr = pr
         self.name = name
-        self.dataB = dataB
+        # self.dataB = dataB
         self.read = self.pr.read
+        self.pogr = 0
 
     def __del__(self):
         del self.pr
 
-    def ReadValue(self,
-                  memory=True,
-                  tau=0,
-                  lastTau=0,
-                  inExsist=False,
-                  DataB=None,
-                  whith_std=False):
+    def ReadValue(self, tau=0, type='ever'):
+        x = []
+        t = []
+        t0 = Time.time()
+        t1 = t0
+        while t1 - t0 <= tau:
+            x += [self.read()]
+            t1 = Time.time()
+            t += [t1]
+        x = np.array(x)
+        t = np.array(t)
+        x = x * self.weightCoef - self.zeroWeight
+        if type == 'ever':
+            return statistics.mean(x)
+        elif type == 'ever_std':
+            return statistics.mean(x), statistics.stdev(x)
+        elif type == 'exp':
+            return Exp_everage(x, t, tau)
+        else:
+            print('reading devise error unpossible type')
+
+    def ReadValue2(self,
+                   memory=True,
+                   tau=0,
+                   lastTau=0,
+                   inExsist=False,
+                   DataB=None,
+                   whith_std=False):
         if DataB == None:
             DataB = self.dataB
         t0 = time.time()
@@ -299,23 +238,23 @@ class ReadingDevise():
             return weight
 
     def SetCoefficient(self, real_weight, tau=10):  # не проверена
-        self.zeroCoef = real_weight / self.ReadValue(memory=False, tau=tau)
+        self.zeroCoef = real_weight / self.ReadValue(tau=tau)
         return self.zeroCoef
 
     def SetZeroWeight(self, tau=10, T=0):
-        data = DataBase()
-        self.zeroWeight += self.ReadValue(tau=tau, DataB=data) - T
-        self.pogr = data.data[self.name].std()
+        Tnew, dT = self.ReadValue(tau=tau, type='ever_std')
+        self.zeroWeight += Tnew - T
+        self.pogr = dT
         return self.zeroWeight
 
     def Test(self, n=5):
+        t0 = Time.time()
         w = np.array([])
         t1 = np.array([])
         t2 = np.array([])
         for i in range(n):
             t1 = np.append(t1, Time.time())
-            w = np.append(w, self.ReadValue(DataB=DataBase()))
+            w = np.append(w, self.ReadValue())
             t2 = np.append(t2, Time.time())
-        print('value=', w)
-        print('start time=', t1)
-        print('fin time=', t2)
+        print(self.name, ' testing')
+        print('value=', w, '  start time=', t1 - t0, '  fin time=', t2 - t0)

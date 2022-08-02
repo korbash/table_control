@@ -1,11 +1,59 @@
 import numpy as np
 import math
+from scipy import optimize
+from scipy.integrate import cumtrapz
+from scipy.interpolate import interp1d
 import ipywidgets
 # from IPython import display
 from IPython.display import display
 import PySimpleGUI as sg
 from .utilities import *
 from . import driwers as dr
+
+
+def caunter(r0=62.5, Ltorch=0.6, lw=30, rw=20, dr=1):
+    def integr(y, x):
+        inte = np.hstack((0, cumtrapz(y, x)))
+        return inte
+
+    def Map(fun, x):
+        return np.array(list(map(fun, x)))
+
+    lw = lw - Ltorch
+    radius = np.linspace(2.5, 62.5, 13)
+    thetas = np.array([
+        97.9162688, 36.01154809, 22.44529847, 16.77319816, 14.08756338,
+        13.28444282, 14.76885344, 19.37716274, 27.14935304, 37.4940508,
+        49.76789206, 63.43683519, 78.09095269
+    ]) / 5
+    Theta = interp1d(radius, thetas, kind='cubic')
+    r = np.arange(rw, r0, dr)
+    dz = Map(lambda x: 1 / float(Theta(x)), r)
+    z = integr(dz, r)
+    z = z[-1] - z
+    inte = integr((r**2), z)
+    # L = 1 / (r ** 2) * (rw ** 2 * (lw) + 2 * (-inte[-1] + inte))
+    L = 1 / (r**2) * (rw**2 * (lw) + 2 * (-inte))
+    x = 2 * z + L - L[-1]
+
+    x = np.append(x, -0.1)
+    r = np.append(r, r[-1])
+    L = np.append(L, L[-1])
+    R_x = interp1d(x, r, kind='cubic')
+    L_x = interp1d(x, L, kind='cubic')
+    xMax = x[0]
+    return L_x, R_x, xMax
+
+
+def findEndPoint(xSt, lSt, alf, L_x, xMax):
+    if alf == 0:
+        x = xSt
+    else:
+        x = optimize.root_scalar(lambda x: L_x(x) / 2 -
+                                 ((x - xSt) / alf + lSt),
+                                 bracket=[-20, xMax + 20],
+                                 method='brentq').root
+    return x, L_x(x) / 2 - lSt
 
 
 class Motor():
