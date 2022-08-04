@@ -15,11 +15,11 @@ def Vdiff(R, L):
     vf = v0 * 2
     rl = r0 / (np.sqrt(vf / v0) - 1)
     L0 = 15
-    return v0 * (r0 + rl)**2 / (R + rl)**2 * (L / L0)
+    return v0 * (r0 + rl)**2 / (R + rl)**2 * (L/L0)
 
 
 class Puller():
-    kStr = 58591.17  # gram/mm * mm жёзскость пружины
+    kStr = 58591.17    # gram/mm * mm жёзскость пружины
 
     def __init__(self, simulate=False):
         if simulate:
@@ -75,8 +75,8 @@ class Puller():
 
     def Clear(self):
         self.data = pd.DataFrame(columns=[
-            'time', 'tension', 'power', 'motorL', 'motorR', 'motorM', 'dt',
-            'x', 'vL', 'vR', 'vM', 'VdifRec', 'tensionWgl', 'tensionEXPgl'
+            'time', 'tension', 'power', 'motorL', 'motorR', 'motorM', 'dt', 'x',
+            'vL', 'vR', 'vM', 'VdifRec', 'tensionWgl', 'tensionEXPgl'
         ])
         self.sg = sglad()
 
@@ -106,10 +106,10 @@ class Puller():
             self.Ttrend = self.sg.trend / dt
             tNew = param['time']
             tSG = self.data.loc[self.sg.iGl, 'time']
-            n = (tNew - tSG) / dt
+            n = (tNew-tSG) / dt
             T1 = self.sg.expGl.iloc[-2]
             T2 = self.sg.expGl.iloc[-1]
-            Tnew = T1 + (T2 - T1) * (n + 1)
+            Tnew = T1 + (T2-T1) * (n+1)
             self.data.loc[self.sg.iGl, 'tensionWgl'] = self.sg.wGl.iloc[-1]
             self.data.loc[range(self.sg.iGl, len(self.data)),
                           'tensionEXPgl'] = np.linspace(
@@ -125,23 +125,25 @@ class Puller():
         dT = self.sg.trend
         E = T - Tnow
         self.pidI += E * Ki * Kp
-        return Kp * (E + Kd * dT) + self.pidI
+        return Kp * (E + Kd*dT) + self.pidI
 
     def SetW(self,
              wide,
              dw=0.1,
              k=None,
              tau=1,
-             quiet=True):  ## T - tension, wIdeal, w_ideal
-        if k == None: k = self.kStr / self.ms.Distance()
+             quiet=True):    ## T - tension, wIdeal, w_ideal
+        if k == None:
+            k = self.kStr / self.ms.Distance()
         # print(k, ' ', self.ms.Distance())
         t0 = Time.time()
         i = 1
         w = -100
         while abs(wide - w) > dw:
             w = self.tg.ReadValue(tau=tau)
-            dx = (wide - w) / k
-            if not quiet: print('w= ', w, ', dw= ', w - wide, ', dx=  ', dx)
+            dx = (wide-w) / k
+            if not quiet:
+                print('w= ', w, ', dw= ', w - wide, ', dx=  ', dx)
             self.ms.motorR.MoveTo(self.ms.motorR.Getposition(analitic=True) -
                                   dx,
                                   a=1)
@@ -170,7 +172,8 @@ class Puller():
                   v2=0.05,
                   Tpr=6,
                   startPos=None):
-        if startPos == None: startPos = self.ms.motorM.Getposition()
+        if startPos == None:
+            startPos = self.ms.motorM.Getposition()
         self.SetW(T, dw=0.1, tau=1, quiet=quiet)
         fitData = pd.DataFrame(columns=['a', 'b', 'x0'])
         for i in range(n):
@@ -197,7 +200,9 @@ class Puller():
         return x0
 
     def SetH_podgon(self, Tpr=6, v=1, quiet=True, a=7):
+
         def get_f(a, b, x0):
+
             def f(x):
                 if x < x0:
                     return a * (x - x0)**2 + b
@@ -241,7 +246,7 @@ class Puller():
         print("SetH_podgon", np.array([a, b, x0]))
         resalt = optimize.fmin(lambda x: errorFun(data, x[0], x[1], x[2]),
                                np.array([a, b, x0]),
-                               disp=False)  # errorFun(data, x[0], x[1], x[2])
+                               disp=False)    # errorFun(data, x[0], x[1], x[2])
         a = resalt[0]
         b = resalt[1]
         x0 = resalt[2]
@@ -263,7 +268,9 @@ class Puller():
              a=4.5,
              b=50,
              x0=10.7):
+
         def get_f(a, b, x0):
+
             def f(x):
                 if x < x0:
                     return a * (x - x0)**2 + b
@@ -371,7 +378,7 @@ class Puller():
                 if not self.ms.motorM.IsInMotion():
                     if upFl:
                         if not self.isUp:
-                            self.ms.motorM.MoveTo(NewMosH + dhMax * dhKof)
+                            self.ms.motorM.MoveTo(NewMosH + dhMax*dhKof)
                             self.tEnd2 = t + self.ms.motorM.CalculateMottonTime(
                             )
                             self.isUp = True
@@ -426,8 +433,7 @@ class Puller():
                     Time.sleep(0.001)
                 # p=self.motorM.Getposition()
                 dh = dhMax * dhKof
-                vh = 1 / 2 * ah * (tau - math.sqrt(
-                    (ah * tau**2 - 4 * dh) / ah))
+                vh = 1 / 2 * ah * (tau - math.sqrt((ah * tau**2 - 4*dh) / ah))
                 self.ms.motorM.Move(dh, vh, ah)
         return 0
 

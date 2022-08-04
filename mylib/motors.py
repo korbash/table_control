@@ -12,6 +12,7 @@ from . import driwers as dr
 
 
 def caunter(r0=62.5, Ltorch=0.6, lw=30, rw=20, dr=1):
+
     def integr(y, x):
         inte = np.hstack((0, cumtrapz(y, x)))
         return inte
@@ -34,7 +35,7 @@ def caunter(r0=62.5, Ltorch=0.6, lw=30, rw=20, dr=1):
     inte = integr((r**2), z)
     # L = 1 / (r ** 2) * (rw ** 2 * (lw) + 2 * (-inte[-1] + inte))
     L = 1 / (r**2) * (rw**2 * (lw) + 2 * (-inte))
-    x = 2 * z + L - L[-1]
+    x = 2*z + L - L[-1]
 
     x = np.append(x, -0.1)
     r = np.append(r, r[-1])
@@ -49,8 +50,7 @@ def findEndPoint(xSt, lSt, alf, L_x, xMax):
     if alf == 0:
         x = xSt
     else:
-        x = optimize.root_scalar(lambda x: L_x(x) / 2 -
-                                 ((x - xSt) / alf + lSt),
+        x = optimize.root_scalar(lambda x: L_x(x) / 2 - ((x-xSt) / alf + lSt),
                                  bracket=[-20, xMax + 20],
                                  method='brentq').root
     return x, L_x(x) / 2 - lSt
@@ -106,15 +106,15 @@ class Motor():
         if (flag == 0):
             self.saveA = a
             self.saveV = v
-            if v == 0: v = 0.1
+            if v == 0:
+                v = 0.1
             self.mot.set_velocity_parameters(0, a, v)
         return flag
 
     def Move_to_iner(self, x):
         flag = 0
         if math.isnan(x):
-            print("error in ", self.name, " -  x isnt number", x, "  ",
-                  type(x))
+            print("error in ", self.name, " -  x isnt number", x, "  ", type(x))
             flag = -3
         if x > self.position_max:
             print("error in ", self.name, " -  position is bad x=", x,
@@ -205,7 +205,7 @@ class Motor():
 
     def Stop(self):
         # print("stop ",self.name,"  ")
-        self.finX[-1] = self.Getposition(memory=False)  # важен порядок
+        self.finX[-1] = self.Getposition(memory=False)    # важен порядок
         self.stopFlag = True
         self.mot.stop_profiled()
 
@@ -226,25 +226,30 @@ class Motor():
         else:
             return 0
 
-    def CalculateMottonTime(self, x=None, v=None, a=None):  # исправить
-        if x == None: x = self.finX[-1] - self.finX[-2]
-        if v == None: v = self.saveV
-        if a == None: a = self.saveA
+    def CalculateMottonTime(self, x=None, v=None, a=None):    # исправить
+        if x == None:
+            x = self.finX[-1] - self.finX[-2]
+        if v == None:
+            v = self.saveV
+        if a == None:
+            a = self.saveA
         v = self.chekV_A(v, a, x)
         a = abs(a)
         x = abs(x)
-        return x / v + v / a
+        return x/v + v/a
 
     def CalculateMottonDist(self, t, v=None, a=None):
-        if v == None: v = self.saveV
-        if a == None: a = self.saveA
+        if v == None:
+            v = self.saveV
+        if a == None:
+            a = self.saveA
         v = abs(v)
         a = abs(a)
         if t < 0:
             print('CalculateMottonDist error t<0 t=', t)
             return 'error'
         if t > 2 * v / a:
-            return (t - v / a) * v
+            return (t - v/a) * v
         else:
             t = t / 2
             return a * t**2
@@ -254,7 +259,8 @@ class Motor():
         return x, v, a
 
     def calcX_V_A_IsInMot(self, t=None, x=None, v=None, a=None):
-        if t == None: t = Time.time() - self.startsTime[-1]
+        if t == None:
+            t = Time.time() - self.startsTime[-1]
         if x == None:
             x0 = self.finX[-2]
             x1 = self.finX[-1]
@@ -262,14 +268,17 @@ class Motor():
         else:
             x0 = 0
             x1 = x0 + x
-        if x == 0: return x1, 0, 0, False
-        if v == None: v = self.saveV
-        if a == None: a = self.saveA
+        if x == 0:
+            return x1, 0, 0, False
+        if v == None:
+            v = self.saveV
+        if a == None:
+            a = self.saveA
         v = self.chekV_A(v, a, x)
         v = abs(v) * np.sign(x)
         a = abs(a) * np.sign(x)
         # print('calcX_V_A_Is:',t=', t, 'x=', x, 'v=', v, 'a=', a)
-        if t > x / v + v / a:
+        if t > x/v + v/a:
             # print('biiig', x, v, t)
             return x1, 0, 0, False
         elif t > x / v:
@@ -281,8 +290,8 @@ class Motor():
             return x1 - dx, dv, -a, True
         elif t > v / a:
             # print('big', x, v, t)
-            dt = t - v / a
-            dx = v**2 / (2 * a) + dt * v
+            dt = t - v/a
+            dx = v**2 / (2*a) + dt*v
             return x0 + dx, v, 0, True
         else:
             # print('small', x, v, t)
@@ -293,9 +302,12 @@ class Motor():
 
     def chekV_A(self, v=None, a=None, x=None):
         # print('chek_va ', x, '  ', type(self.finX[-1]), '  ', self.finX[-2])
-        if v == None: v = self.saveV
-        if a == None: a = self.saveA
-        if x == None: x = self.finX[-1] - self.finX[-2]
+        if v == None:
+            v = self.saveV
+        if a == None:
+            a = self.saveA
+        if x == None:
+            x = self.finX[-1] - self.finX[-2]
         a = abs(a)
         x = abs(x)
         v = abs(v)
@@ -322,12 +334,12 @@ class MotorSystem():
 
         self.motorL = Motor(motL, "motor L")
         self.motorR = Motor(motR, "motor R")
-        self.motorM = Motor(motM, "motor M", 39)  # начальная позиция 60
+        self.motorM = Motor(motM, "motor M", 39)    # начальная позиция 60
 
         self.a_norm = self.motorL.a_norm
         self.v_norm = self.motorL.v_norm
 
-        self.l0 = 104 + 200 - self.motorL.position_max - self.motorR.position_max  # милиметров  наименишея длина струны
+        self.l0 = 104 + 200 - self.motorL.position_max - self.motorR.position_max    # милиметров  наименишея длина струны
         self.centrStart = 0
         self.x0 = None
         self.mosH = None
@@ -471,10 +483,13 @@ class MotorSystem():
         return itog
 
     def Distance(self, xL=None, xR=None, useL0=True):
-        if xL == None: xL = self.motorL.Getposition(memory=False)
-        if xR == None: xR = self.motorR.Getposition(memory=False)
+        if xL == None:
+            xL = self.motorL.Getposition(memory=False)
+        if xR == None:
+            xR = self.motorR.Getposition(memory=False)
         l = 0
-        if useL0: l = self.l0
+        if useL0:
+            l = self.l0
         return self.motorL.position_max + self.motorR.position_max - xL - xR + l
 
     def MoveToStart(self, L=None, dL=0, v=-1, a=-1, zapas=3):
@@ -482,7 +497,8 @@ class MotorSystem():
             v = self.v_norm
         if (a == -1):
             a = self.a_norm
-        if L == None: L = self.L_x(0) / 2 + zapas
+        if L == None:
+            L = self.L_x(0) / 2 + zapas
         self.lStart = L
         self.motorL.MoveTo(self.motorL.position_max - L - dL, v, a)
         self.motorR.MoveTo(self.motorR.position_max - L + dL, v, a)
@@ -503,8 +519,8 @@ class MotorSystem():
         vR = a * t - np.sqrt(a ** 2 * t ** 2 - 2 * a * (abs(L) + math.copysign(dx, L)))
         '''
         v = self.motorR.chekV_A(v, a, L)
-        coffL = (v - vdiff / 2) / v
-        coffB = (v + vdiff / 2) / v
+        coffL = (v - vdiff/2) / v
+        coffB = (v + vdiff/2) / v
         t = self.motorL.CalculateMottonTime(x=L, v=v, a=a)
         sL = self.motorL.CalculateMottonDist(t=t, v=v * coffL, a=a * coffL)
         sB = self.motorL.CalculateMottonDist(t=t, v=v * coffB, a=a * coffB)
@@ -515,13 +531,13 @@ class MotorSystem():
         xR = self.motorR.Getposition(analitic=False)
         # print("Move", sL/coffL, sB/coffB, L, vdiff, xL, xR)
         if L > 0:
-            flag += self.motorL.Set_velocity(v=v * coffB, a=a * coffB - da)
-            flag += self.motorR.Set_velocity(v=v * coffL, a=a * coffL + da)
+            flag += self.motorL.Set_velocity(v=v * coffB, a=a*coffB - da)
+            flag += self.motorR.Set_velocity(v=v * coffL, a=a*coffL + da)
             flag += self.motorL.Move_to_iner(xL - sB)
             flag += self.motorR.Move_to_iner(xR + sL)
         else:
-            flag += self.motorL.Set_velocity(v=v * coffL, a=a * coffL + da)
-            flag += self.motorR.Set_velocity(v=v * coffB, a=a * coffB - da)
+            flag += self.motorL.Set_velocity(v=v * coffL, a=a*coffL + da)
+            flag += self.motorR.Set_velocity(v=v * coffB, a=a*coffB - da)
             flag += self.motorR.Move_to_iner(xR - sB)
             flag += self.motorL.Move_to_iner(xL + sL)
 
@@ -530,26 +546,30 @@ class MotorSystem():
         return 0
 
     def calcX_L(self, lStart=None, centrStart=None, posL=None, posR=None):
-        if posL == None: posL = self.motorL.Getposition(memory=False)
-        if posR == None: posR = self.motorR.Getposition(memory=False)
-        if lStart == None: lStart = self.lStart
-        if centrStart == None: centrStart = self.centrStart
+        if posL == None:
+            posL = self.motorL.Getposition(memory=False)
+        if posR == None:
+            posR = self.motorR.Getposition(memory=False)
+        if lStart == None:
+            lStart = self.lStart
+        if centrStart == None:
+            centrStart = self.centrStart
         pL = self.motorL.position_max - lStart - posL - centrStart
         pR = self.motorR.position_max - lStart - posR + centrStart
-        x = pL + pR  # изменить
-        L = (pL - pR) / 2 - centrStart
+        x = pL + pR    # изменить
+        L = (pL-pR) / 2 - centrStart
         return x, L
 
     def PulMove(self, v, a, dv, stFl):
-        dt = 0  # рудимент пока похраним
+        dt = 0    # рудимент пока похраним
         alf = dv / v
         x, L = self.calcX_L()
         # print("PulMove", "L=", L, "x=", x, "L_x(x)=", self.L_x(x) / 2, "alf=", alf)
 
-        if self.direction == 0:  # движжение в положительном направление
+        if self.direction == 0:    # движжение в положительном направление
             Xnew, dLnew = findEndPoint(x, L, alf, self.L_x, self.xMax)
             # print(dLnew, "  case0")
-        else:  # движжение в отрицательном направление
+        else:    # движжение в отрицательном направление
             Xnew, dLnew = findEndPoint(x, -L, alf, self.L_x, self.xMax)
             dLnew = -dLnew
             # print(-dLnew, v, a, alf, dt, "  case1")
@@ -562,7 +582,7 @@ class MotorSystem():
         else:
             self.Move(-L, v, a, alf * v, dt)
             t = self.motorR.CalculateMottonTime(L, v, a)
-            Xnew = x + t * alf * v
+            Xnew = x + t*alf*v
             print("xMax=", self.xMax, "L_x(xMax)=",
                   self.L_x(self.xMax) / 2, "  x=", x, "  L=", L, 'xEnd=', Xnew,
                   'lEnd=',
