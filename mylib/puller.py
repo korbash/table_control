@@ -3,8 +3,10 @@ import math
 import pandas as pd
 from scipy import optimize
 from mylib import *
-
+from .sacred_logger import ex, save_data
+from pathlib import Path
 # переделать стоп button
+main_path = Path(__file__).parents[1]
 
 
 def Vdiff(R, L):
@@ -59,14 +61,17 @@ class Puller():
         del self.tg
 
     def Save(self):
-        Save(self.data, name='crude.csv', dirSubName='main_data\\DATE')
-        Save(pd.DataFrame({
-            'time': self.times,
-            'kof': self.trueKmas,
-            'sglKof': self.trueKmasGl,
-        }),
-             name='odrKof.csv',
-             dirSubName='main_data\\DATE')
+        save_data(self.data, name='pull_resalts.csv')
+        ex.run()
+        ex.add_artifact(str(main_path / 'data' / 'pull_resalts.csv'))
+        # Save(self.data, name='crude.csv', dirSubName='main_data\\DATE')
+        # Save(pd.DataFrame({
+        #     'time': self.times,
+        #     'kof': self.trueKmas,
+        #     'sglKof': self.trueKmasGl,
+        # }),
+        #      name='odrKof.csv',
+        #      dirSubName='main_data\\DATE')
 
     def Clear(self):
         self.data = pd.DataFrame(columns=[
@@ -78,6 +83,7 @@ class Puller():
     def Read(self, motoL=True, motoR=True, motoM=True):
         param = {}
         tSt = Time.time()
+        param['time'] = tSt
         param['motorL'] = self.ms.motorL.Getposition()
         param['motorR'] = self.ms.motorR.Getposition()
         param['motorM'] = self.ms.motorM.Getposition()
@@ -91,12 +97,9 @@ class Puller():
         param['vM'], param['aM'] = self.ms.motorM.calcX_V_A()[1:3]
         param['pressure'] = param['tension'] * self.ms.R_x(0)**2 / self.ms.R_x(
             param['x'])**2
-        param['VdifRec'] = Vdiff(self.ms.R_x(param['x']),
-                                 self.ms.L_x(param['x']))
-        param['time'] = Time.time()
+        # param['VdifRec'] = Vdiff(self.ms.R_x(param['x']),
+        #                          self.ms.L_x(param['x']))
         self.sg.New(param['tension'], param['vL'])
-        # DataBase.Wright(param, inExsist=True)
-        # DataBase.Apdete()
         self.data.loc[len(self.data)] = param
         if self.sg.expGl.size > 1:
             dt = (param['time'] - self.data['time'].iloc[-10]) / 10
@@ -107,15 +110,11 @@ class Puller():
             T1 = self.sg.expGl.iloc[-2]
             T2 = self.sg.expGl.iloc[-1]
             Tnew = T1 + (T2 - T1) * (n + 1)
-            # self.data.loc[self.sg.iGl, 'tensionEXPgl'] = T2
             self.data.loc[self.sg.iGl, 'tensionWgl'] = self.sg.wGl.iloc[-1]
             self.data.loc[range(self.sg.iGl, len(self.data)),
                           'tensionEXPgl'] = np.linspace(
                               T2, Tnew,
                               len(self.data) - self.sg.iGl)
-            # self.data.loc[len(self.data) - 2, 'tensionEXPgl'] = np.nan
-            # self.data.loc[len(self.data) - 1, 'tensionEXPgl'] = Tnew
-            # print(param)
 
     def Tprog(self, tau=0):
         return self.Ttrend * tau + self.data.loc[len(self.data) - 1,

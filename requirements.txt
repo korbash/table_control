@@ -8,5 +8,7 @@ jupyter-ui-poll
 pyserial
 pyusb
 matplotlib
-
+sacred
+pymongo
+python-dotenv
 
