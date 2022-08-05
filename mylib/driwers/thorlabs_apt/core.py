@@ -1366,7 +1366,7 @@ def _load_library():
             lib = ctypes.windll.LoadLibrary(lib)
             if (lib is None):
                 raise Exception("Could not find shared library APT.dll.")
-    print(dir(lib))
+    # print(dir(lib))
     _APTAPI.set_ctypes_argtypes(lib)
     err_code = lib.APTInit()
     if (err_code != 0):

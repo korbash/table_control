@@ -14,18 +14,18 @@ dotenv.load_dotenv(key_dir / 'keys.env')
 # print(os.environ['host'])
 
 url = 'mongodb://{user}:{pw}@{host}:{port}/?replicaSet={rs}&authSource={auth_src}'.format(
-    user=os.environ['username'],
-    pw=os.environ['password'],
-    host=os.environ['host'],
-    port=os.environ['port'],
+    user=os.environ['mango_username'],
+    pw=os.environ['mango_password'],
+    host=os.environ['mango_host'],
+    port=os.environ['mango_port'],
     rs='rs01',
-    auth_src='db1')
+    auth_src=os.environ['mango_database'])
 
 ex = Experiment('test')
 ex.observers.append(
     MongoObserver(url,
                   tlsCAFile=str(key_dir / 'cert.crt'),
-                  db_name=os.environ['database']))
+                  db_name=os.environ['mango_database']))
 
 # @ex.capture
 # def live_metrics(params, _run):
