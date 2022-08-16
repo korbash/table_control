@@ -23,7 +23,7 @@ class Puller():
 
     def __init__(self, simulate=False):
         if simulate:
-            self.sim = simulator(104, self.kStr, -0.0075585384235655265)
+            self.sim = simulator(104, self.kStr, -2.078990076470489) # -0.0075585384235655265
             tg = self.sim.tg
             pm = self.sim.pm
         else:
@@ -34,7 +34,7 @@ class Puller():
             Time.sleep(0.001)
         self.tg = ReadingDevise(tg,
                                 'tension',
-                                weightCoef=-0.0075585384235655265)
+                                weightCoef=-2.078990076470489)
         Time.sleep(0.001)
         self.pm = ReadingDevise(pm, 'power', weightCoef=1000)
         self.ms = MotorSystem(simulate=simulate, simulator=self.sim)
@@ -346,7 +346,7 @@ class Puller():
 
         NewMosH += self.ms.x0
         t = Time.time()
-        downPos = self.ms.motorM.position_max - 2
+        downPos = self.ms.motorM.position_min + 2
         tau = self.v / self.a
         dhMax = ah * tau**2 / 4
         self.lastPhase = self.phase

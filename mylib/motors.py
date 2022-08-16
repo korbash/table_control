@@ -334,7 +334,7 @@ class MotorSystem():
 
         self.motorL = Motor(motL, "motor L")
         self.motorR = Motor(motR, "motor R")
-        self.motorM = Motor(motM, "motor M", 39)    # начальная позиция 60
+        self.motorM = Motor(motM, "motor M")    # начальная позиция 60
 
         self.a_norm = self.motorL.a_norm
         self.v_norm = self.motorL.v_norm
