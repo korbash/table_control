@@ -420,7 +420,7 @@ class Puller():
                         (ah * tau**2 - 4 * abs(dh1)) / ah))
                     while self.ms.motorM.IsInMotion():
                         Time.sleep(0.001)
-                    self.ms.motorM.Move(-dh1, vh, ah)
+                    self.ms.motorM.Move(dh1, vh, ah)
                     self.tact += 1
 
         if self.phase == 2:
@@ -431,7 +431,7 @@ class Puller():
                 dh = dhMax * dhKof
                 vh = 1 / 2 * ah * (tau - math.sqrt(
                     (ah * tau**2 - 4 * dh) / ah))
-                self.ms.motorM.Move(dh, vh, ah)
+                self.ms.motorM.Move(-dh, vh, ah)
         return 0
 
     def Test(self):
