@@ -35,7 +35,7 @@ ex.observers.append(
 
 @ex.automain
 def push_to_mango(_run):
-    metrics = ['power','tension','tensionEXPgl','x']
+    metrics = ['power','tension','tensionEXPgl','x', 'dv']
     data = pd.read_csv(str(data_dir / 'pull_resalts.csv'))
     for i, d in data[metrics].iterrows():
         for n, v in d.items():
