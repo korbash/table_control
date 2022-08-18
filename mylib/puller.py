@@ -75,7 +75,7 @@ class Puller():
     def Clear(self):
         self.data = pd.DataFrame(columns=[
             'time', 'tension', 'power', 'motorL', 'motorR', 'motorM', 'dt',
-            'x', 'vL', 'vR', 'vM', 'VdifRec', 'tensionWgl', 'tensionEXPgl'
+            'x', 'vL', 'vR', 'vM', 'VdifRec', 'tensionWgl', 'tensionEXPgl', 'dv'
         ])
         self.sg = sglad()
 
@@ -125,7 +125,8 @@ class Puller():
         dT = self.sg.trend
         E = T - Tnow
         self.pidI += E * Ki * Kp
-        return Kp * (E + Kd * dT) + self.pidI
+        per = self.sg.periud
+        return Kp * (E + (Kd + per) * dT) + self.pidI
 
     def SetW(self,
              wide,
@@ -420,7 +421,7 @@ class Puller():
                         (ah * tau**2 - 4 * abs(dh1)) / ah))
                     while self.ms.motorM.IsInMotion():
                         Time.sleep(0.001)
-                    self.ms.motorM.Move(dh1, vh, ah)
+                    self.ms.motorM.Move(-dh1, vh, ah)
                     self.tact += 1
 
         if self.phase == 2:
