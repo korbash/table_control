@@ -11,4 +11,5 @@ matplotlib
 sacred
 pymongo
 python-dotenv
+queuelib
 

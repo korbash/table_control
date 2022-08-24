@@ -49,7 +49,7 @@ class Puller():
 
         self.VdifRec = 0
 
-        self.sg = sglad(0.08, 0.2)
+        self.sg = sglad()  #sglad(0.08, 0.2)
         self.MotorsControlStart()
         '''self.Slider = {}
         self.slidersBtn = {}'''
@@ -99,22 +99,30 @@ class Puller():
         param['dv'] = self.dv
         # param['VdifRec'] = Vdiff(self.ms.R_x(param['x']),
         #                          self.ms.L_x(param['x']))
-        self.sg.New(param['tension'], param['vL'])
-        self.data.loc[len(self.data)] = param
-        if self.sg.expGl.size > 1:
-            dt = (param['time'] - self.data['time'].iloc[-10]) / 10
-            self.Ttrend = self.sg.trend / dt
-            tNew = param['time']
-            tSG = self.data.loc[self.sg.iGl, 'time']
-            n = (tNew - tSG) / dt
-            T1 = self.sg.expGl.iloc[-2]
-            T2 = self.sg.expGl.iloc[-1]
-            Tnew = T1 + (T2 - T1) * (n + 1)
-            self.data.loc[self.sg.iGl, 'tensionWgl'] = self.sg.wGl.iloc[-1]
-            self.data.loc[range(self.sg.iGl, len(self.data)),
-                          'tensionEXPgl'] = np.linspace(
-                              T2, Tnew,
-                              len(self.data) - self.sg.iGl)
+        self.sg.NewPoint(param['tension'], param['time'])
+        l = len(self.data)
+        self.data.loc[l] = param
+        if self.sg.mean is None: self.wi = l
+        else:
+            while self.data.loc[self.wi, 'time'] <= self.sg.t:
+                self.wi += 1
+                self.data.loc[self.wi, 'tensionWgl'] = self.sg.mean
+                self.data.loc[self.wi, 'tensionEXPgl'] = self.sg.level
+                # print(w, self.wi)
+        # if self.sg.expGl.size > 1:
+        #     dt = (param['time'] - self.data['time'].iloc[-10]) / 10
+        #     self.Ttrend = self.sg.trend / dt
+        #     tNew = param['time']
+        #     tSG = self.data.loc[self.sg.iGl, 'time']
+        #     n = (tNew - tSG) / dt
+        #     T1 = self.sg.expGl.iloc[-2]
+        #     T2 = self.sg.expGl.iloc[-1]
+        #     Tnew = T1 + (T2 - T1) * (n + 1)
+        #     self.data.loc[self.sg.iGl, 'tensionWgl'] = self.sg.wGl.iloc[-1]
+        #     self.data.loc[range(self.sg.iGl, len(self.data)),
+        #                   'tensionEXPgl'] = np.linspace(
+        #                       T2, Tnew,
+        #                       len(self.data) - self.sg.iGl)
 
     def Tprog(self, tau=0):
         return self.Ttrend * tau + self.data.loc[len(self.data) - 1,
@@ -367,8 +375,9 @@ class Puller():
             else:
                 if not self.ms.IsInMotion():
                     self.stFl = self.ms.PulMove(self.v, self.a, 0, stFl)
-                    self.sg.NewStTime()
+                    # self.sg.NewStTime()
                     self.tEnd = t + self.ms.motorR.CalculateMottonTime()
+                    self.sg.New_tact(self.tEnd)
                 if self.tEnd > self.tEnd2:
                     self.tStart = self.tEnd
                 if not self.ms.motorM.IsInMotion():
@@ -402,11 +411,12 @@ class Puller():
                             # self.tFinish - self.tStart,
                         # print(self.v, self.a, self.dv, self.t_new, self.t_last, self.T_new, self.T_last)
                     self.stFl = self.ms.PulMove(self.v, self.a, self.dv, stFl)
-                    self.sg.NewStTime()
+                    # self.sg.NewStTime()
                     self.tStart = Time.time()
                     self.tStart1 = self.tStart + self.v / self.a
                     self.tFinish = self.tStart + self.ms.motorR.CalculateMottonTime(
                     )
+                    self.sg.New_tact(self.tFinish)
                     self.tFinish1 = self.tFinish - self.v / self.a
                     if self.tFinish1 < self.tStart1:
                         self.tStart1 = self.tFinish1 = (self.tStart +
