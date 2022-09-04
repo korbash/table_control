@@ -1,3 +1,5 @@
+from ast import Yield
+from tkinter import Y
 import numpy as np
 import math
 from scipy import optimize
@@ -12,7 +14,6 @@ from . import driwers as dr
 
 
 def caunter(r0=62.5, Ltorch=0.6, lw=30, rw=20, dr=1):
-
     def integr(y, x):
         inte = np.hstack((0, cumtrapz(y, x)))
         return inte
@@ -35,7 +36,7 @@ def caunter(r0=62.5, Ltorch=0.6, lw=30, rw=20, dr=1):
     inte = integr((r**2), z)
     # L = 1 / (r ** 2) * (rw ** 2 * (lw) + 2 * (-inte[-1] + inte))
     L = 1 / (r**2) * (rw**2 * (lw) + 2 * (-inte))
-    x = 2*z + L - L[-1]
+    x = 2 * z + L - L[-1]
 
     x = np.append(x, -0.1)
     r = np.append(r, r[-1])
@@ -50,7 +51,8 @@ def findEndPoint(xSt, lSt, alf, L_x, xMax):
     if alf == 0:
         x = xSt
     else:
-        x = optimize.root_scalar(lambda x: L_x(x) / 2 - ((x-xSt) / alf + lSt),
+        x = optimize.root_scalar(lambda x: L_x(x) / 2 -
+                                 ((x - xSt) / alf + lSt),
                                  bracket=[-20, xMax + 20],
                                  method='brentq').root
     return x, L_x(x) / 2 - lSt
@@ -59,8 +61,8 @@ def findEndPoint(xSt, lSt, alf, L_x, xMax):
 class Motor():
     v_norm = 5
     a_norm = 5
-    v_max = 1000
-    a_max = 3000
+    v_max = 30
+    a_max = 30
 
     def __init__(self, mot, motor_name, p_max=99):
 
@@ -114,7 +116,8 @@ class Motor():
     def Move_to_iner(self, x):
         flag = 0
         if math.isnan(x):
-            print("error in ", self.name, " -  x isnt number", x, "  ", type(x))
+            print("error in ", self.name, " -  x isnt number", x, "  ",
+                  type(x))
             flag = -3
         if x > self.position_max:
             print("error in ", self.name, " -  position is bad x=", x,
@@ -164,7 +167,7 @@ class Motor():
         while (self.IsInMotion()):
             pass
         p = self.Getposition(memory=False, motorNotMove=True)
-        self.chekV_A(v, a, dp)
+        v = self.chekV_A(v, a, dp)
         self.Set_velocity(v, a)
         flag = self.Move_to_iner(p + dp)
         return flag
@@ -205,7 +208,7 @@ class Motor():
 
     def Stop(self):
         # print("stop ",self.name,"  ")
-        self.finX[-1] = self.Getposition(memory=False)    # важен порядок
+        self.finX[-1] = self.Getposition(memory=False)  # важен порядок
         self.stopFlag = True
         self.mot.stop_profiled()
 
@@ -226,7 +229,7 @@ class Motor():
         else:
             return 0
 
-    def CalculateMottonTime(self, x=None, v=None, a=None):    # исправить
+    def CalculateMottonTime(self, x=None, v=None, a=None):  # исправить
         if x == None:
             x = self.finX[-1] - self.finX[-2]
         if v == None:
@@ -236,7 +239,7 @@ class Motor():
         v = self.chekV_A(v, a, x)
         a = abs(a)
         x = abs(x)
-        return x/v + v/a
+        return x / v + v / a
 
     def CalculateMottonDist(self, t, v=None, a=None):
         if v == None:
@@ -249,7 +252,7 @@ class Motor():
             print('CalculateMottonDist error t<0 t=', t)
             return 'error'
         if t > 2 * v / a:
-            return (t - v/a) * v
+            return (t - v / a) * v
         else:
             t = t / 2
             return a * t**2
@@ -278,7 +281,7 @@ class Motor():
         v = abs(v) * np.sign(x)
         a = abs(a) * np.sign(x)
         # print('calcX_V_A_Is:',t=', t, 'x=', x, 'v=', v, 'a=', a)
-        if t > x/v + v/a:
+        if t > x / v + v / a:
             # print('biiig', x, v, t)
             return x1, 0, 0, False
         elif t > x / v:
@@ -290,8 +293,8 @@ class Motor():
             return x1 - dx, dv, -a, True
         elif t > v / a:
             # print('big', x, v, t)
-            dt = t - v/a
-            dx = v**2 / (2*a) + dt*v
+            dt = t - v / a
+            dx = v**2 / (2 * a) + dt * v
             return x0 + dx, v, 0, True
         else:
             # print('small', x, v, t)
@@ -334,15 +337,16 @@ class MotorSystem():
 
         self.motorL = Motor(motL, "motor L")
         self.motorR = Motor(motR, "motor R")
-        self.motorM = Motor(motM, "motor M")    # начальная позиция 60
+        self.motorM = Motor(motM, "motor M")  # начальная позиция 60
 
         self.a_norm = self.motorL.a_norm
         self.v_norm = self.motorL.v_norm
 
-        self.l0 = 104 + 200 - self.motorL.position_max - self.motorR.position_max    # милиметров  наименишея длина струны
+        self.l0 = 104 + 200 - self.motorL.position_max - self.motorR.position_max  # милиметров  наименишея длина струны
         self.centrStart = 0
         self.x0 = None
         self.mosH = None
+        self.dhFire = 0
 
         self.stopButton = ipywidgets.widgets.Button(
             description="Stop All Motors")
@@ -519,8 +523,8 @@ class MotorSystem():
         vR = a * t - np.sqrt(a ** 2 * t ** 2 - 2 * a * (abs(L) + math.copysign(dx, L)))
         '''
         v = self.motorR.chekV_A(v, a, L)
-        coffL = (v - vdiff/2) / v
-        coffB = (v + vdiff/2) / v
+        coffL = (v - vdiff / 2) / v
+        coffB = (v + vdiff / 2) / v
         t = self.motorL.CalculateMottonTime(x=L, v=v, a=a)
         sL = self.motorL.CalculateMottonDist(t=t, v=v * coffL, a=a * coffL)
         sB = self.motorL.CalculateMottonDist(t=t, v=v * coffB, a=a * coffB)
@@ -531,13 +535,13 @@ class MotorSystem():
         xR = self.motorR.Getposition(analitic=False)
         # print("Move", sL/coffL, sB/coffB, L, vdiff, xL, xR)
         if L > 0:
-            flag += self.motorL.Set_velocity(v=v * coffB, a=a*coffB - da)
-            flag += self.motorR.Set_velocity(v=v * coffL, a=a*coffL + da)
+            flag += self.motorL.Set_velocity(v=v * coffB, a=a * coffB - da)
+            flag += self.motorR.Set_velocity(v=v * coffL, a=a * coffL + da)
             flag += self.motorL.Move_to_iner(xL - sB)
             flag += self.motorR.Move_to_iner(xR + sL)
         else:
-            flag += self.motorL.Set_velocity(v=v * coffL, a=a*coffL + da)
-            flag += self.motorR.Set_velocity(v=v * coffB, a=a*coffB - da)
+            flag += self.motorL.Set_velocity(v=v * coffL, a=a * coffL + da)
+            flag += self.motorR.Set_velocity(v=v * coffB, a=a * coffB - da)
             flag += self.motorR.Move_to_iner(xR - sB)
             flag += self.motorL.Move_to_iner(xL + sL)
 
@@ -556,20 +560,28 @@ class MotorSystem():
             centrStart = self.centrStart
         pL = self.motorL.position_max - lStart - posL - centrStart
         pR = self.motorR.position_max - lStart - posR + centrStart
-        x = pL + pR    # изменить
-        L = (pL-pR) / 2 - centrStart
+        x = pL + pR  # изменить
+        L = (pL - pR) / 2 - centrStart
         return x, L
 
+    def ResetBeforePull(self):
+        self.stFl = False
+        self.hFire = self.motorM.Getposition()
+        self.tStart = 0
+        self.tStart1 = 0
+        self.tFinish1 = 0
+        self.tFinish = 0
+
     def PulMove(self, v, a, dv, stFl):
-        dt = 0    # рудимент пока похраним
+        dt = 0  # рудимент пока похраним
         alf = dv / v
         x, L = self.calcX_L()
         # print("PulMove", "L=", L, "x=", x, "L_x(x)=", self.L_x(x) / 2, "alf=", alf)
 
-        if self.direction == 0:    # движжение в положительном направление
+        if self.direction == 0:  # движжение в положительном направление
             Xnew, dLnew = findEndPoint(x, L, alf, self.L_x, self.xMax)
             # print(dLnew, "  case0")
-        else:    # движжение в отрицательном направление
+        else:  # движжение в отрицательном направление
             Xnew, dLnew = findEndPoint(x, -L, alf, self.L_x, self.xMax)
             dLnew = -dLnew
             # print(-dLnew, v, a, alf, dt, "  case1")
@@ -582,14 +594,56 @@ class MotorSystem():
         else:
             self.Move(-L, v, a, alf * v, dt)
             t = self.motorR.CalculateMottonTime(L, v, a)
-            Xnew = x + t*alf*v
+            Xnew = x + t * alf * v
             print("xMax=", self.xMax, "L_x(xMax)=",
                   self.L_x(self.xMax) / 2, "  x=", x, "  L=", L, 'xEnd=', Xnew,
                   'lEnd=',
                   self.L_x(Xnew) / 2)
-            return True
+            self.stFl = True
         self.direction = not self.direction
-        return False
+
+        self.tStart = Time.time()
+        self.tStart1 = self.tStart + v / a
+        self.tFinish = self.tStart + self.motorR.CalculateMottonTime()
+        self.tFinish1 = self.tFinish - v / a
+        if self.tFinish1 < self.tStart1:
+            self.tStart1 = self.tFinish1 = (self.tStart + self.tFinish) / 2
+        return self.stFl
+
+    def PulFireMove(self, aEnd, vEnd, vFon):
+        while self.motorM.IsInMotion():
+            pass
+        t = Time.time()
+        # print(t, self.tStart, self.tStart1, self.tFinish1, self.tFinish)
+        if t < self.tStart1:  # фаза ускорения
+            dt = self.tStart1 - t
+            print('start:', self.tStart1 - self.tStart, dt)
+            self.hFire += (self.tStart1 - self.tStart) * vFon
+            hG = self.hFire - self.motorM.Getposition()
+        elif self.tStart1 <= t < self.tFinish1:  # фаза равномерного движения
+            dt = self.tFinish1 - t
+            print('move:', self.tFinish1 - self.tStart1, dt)
+            self.hFire += (self.tFinish1 - self.tStart1) * vFon
+            hG = self.hFire - self.motorM.Getposition()
+        elif t < self.tFinish:  # фаза торможения
+            dt = self.tFinish - t
+            print('stop:', self.tFinish - self.tFinish1, dt)
+            self.hFire += (self.tFinish - self.tFinish1) * vFon
+            h = self.motorM.CalculateMottonDist(dt, v=vEnd, a=aEnd)
+            hG = self.hFire - h - self.motorM.Getposition()
+        else:
+            print('слишком поздний вызов PulFireMove')
+            return
+        htr = self.motorM.CalculateMottonDist(dt, v=1000, a=aEnd)
+        hMax = self.motorM.CalculateMottonDist(dt, v=Motor.v_max, a=aEnd)
+        if hMax < abs(hG):
+            self.motorM.Move(math.copysign(hMax, hG), v=Motor.v_max, a=aEnd)
+        else:
+            v = self.motorM.chekV_A(v=1000, a=aEnd, x=htr)
+            dh = htr - abs(hG)
+            dv = math.sqrt(dh / htr) * v
+            # print(dt, htr, v, dv)
+            self.motorM.Move(hG, v=v - dv, a=aEnd)
 
     def IsInMotion(self, all=False):
         if (self.motorR.IsInMotion() or self.motorL.IsInMotion()
@@ -616,97 +670,3 @@ class MotorSystem():
         self.motorR.Clear(n)
         self.motorL.Clear(n)
         self.motorM.Clear(n)
-
-
-# def MotorsControlStart(self):
-#     self.phase = -1
-#     self.tStart = float('+inf')
-#     self.tStart1 = 0
-#     self.tFinish1 = 0
-#     self.tFinish = 0
-#     self.lastPhase = -1
-#     self.tEnd = 0
-#     self.tEnd2 = float('+inf')
-#     self.isUp = False
-#     self.stFl = False
-
-# def PulMotorsControl(self, v, a, dv, NewMosH, upFl=True, stFl=False, dhKof=0.5, ah=9):
-#     NewMosH += self.x0
-#     t = Time.time()
-#     downPos = self.motorM.position_max - 2
-#     tau = v / a
-#     dhMax = ah * tau ** 2 / 4
-#     self.lastPhase = self.phase
-#     if t < self.tStart:
-#         self.phase = -1
-#     elif t < self.tStart1:
-#         self.phase = 0
-#     elif t < self.tFinish1:
-#         self.phase = 1
-#     elif t < self.tFinish:
-#         self.phase = 2
-#     else:
-#         self.phase = 3
-#
-#     if self.phase == -1:
-#         if self.stFl:
-#             while self.motorM.IsInMotion():
-#                 Time.sleep(0.001)
-#             self.motorM.MoveTo(downPos)
-#             return -1
-#         else:
-#             if not self.IsInMotion():
-#                 self.stFl = self.PulMove(v, a, 0, stFl)
-#                 self.tEnd = t + self.motorR.CalculateMottonTime()
-#             if self.tEnd > self.tEnd2:
-#                 self.tStart = self.tEnd
-#             if not self.motorM.IsInMotion():
-#                 if upFl:
-#                     if not self.isUp:
-#                         self.motorM.MoveTo(NewMosH + dhMax * dhKof)
-#                         self.tEnd2 = t + self.motorM.CalculateMottonTime()
-#                         self.isUp = True
-#                 else:
-#                     if self.isUp:
-#                         self.motorM.MoveTo(downPos)
-#                         self.isUp = False
-#
-#     if self.phase == 3:
-#         if self.phase != self.lastPhase:
-#             if self.IsInMotion():
-#                 self.phase = self.lastPhase
-#                 return 0
-#             if not upFl or self.stFl:
-#                 self.tStart = float('+inf')
-#                 self.tStart1 = 0
-#                 self.tFinish1 = 0
-#                 self.tFinish = 0
-#                 self.tEnd = 0
-#                 self.tEnd2 = float('+inf')
-#             else:
-#                 self.stFl = self.PulMove(v, a, dv, stFl)
-#                 self.tStart = Time.time()
-#                 self.tStart1 = self.tStart + v / a
-#                 self.tFinish = self.tStart + self.motorR.CalculateMottonTime()
-#                 self.tFinish1 = self.tFinish - v / a
-#                 if self.tFinish1 < self.tStart1:
-#                     self.tStart1 = self.tFinish1 = (self.tStart + self.tFinish) / 2
-#                 dh1 = self.motorM.Getposition() - NewMosH
-#                 p = self.motorM.Getposition()
-#                 if abs(dh1) > dhMax:
-#                     dh1 = dhMax * np.sign(dh1)
-#                     print('you so fast, i think it is too math')
-#                 vh = 1 / 2 * ah * (tau - math.sqrt((ah * tau ** 2 - 4 * abs(dh1)) / ah))
-#                 while self.motorM.IsInMotion():
-#                     Time.sleep(0.001)
-#                 self.motorM.Move(-dh1, vh, ah)
-#
-#     if self.phase == 2:
-#         if self.phase != self.lastPhase:
-#             while self.motorM.IsInMotion():
-#                 Time.sleep(0.001)
-#             # p=self.motorM.Getposition()
-#             dh = dhMax * dhKof
-#             vh = 1 / 2 * ah * (tau - math.sqrt((ah * tau ** 2 - 4 * dh) / ah))
-#             self.motorM.Move(dh, vh, ah)
-#     return 0

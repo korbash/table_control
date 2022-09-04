@@ -27,11 +27,6 @@ ex.observers.append(
                   tlsCAFile=str(key_dir / 'cert.crt'),
                   db_name=os.environ['mango_database']))
 
-# @ex.capture
-# def live_metrics(params, _run):
-#     for name, val in params.items():
-#         _run.log_scalar(name, val)
-
 
 @ex.automain
 def push_to_mango(_run):
@@ -40,7 +35,6 @@ def push_to_mango(_run):
     for i, d in data[metrics].iterrows():
         for n, v in d.items():
             _run.log_scalar(n,v)
-
 
 
 

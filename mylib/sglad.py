@@ -9,7 +9,7 @@ class sglad():
     размер окна равен периуду движения моторчиков, тоесть 2 тактам
     и соответственно может меняться
     '''
-    def __init__(self, tau_l=10, tau_t=10):
+    def __init__(self, tau_l=5, tau_t=10):
         # характерное время усреднения (для эксп сглаживания)
         self.a = tau_l  # значения
         self.b = tau_t  # производной
@@ -25,8 +25,8 @@ class sglad():
         self.sum = 0
         self.n = 0
         self.mean = None
-        self.level = 0
-        self.trend = 0
+        self.level = None
+        self.trend = None
 
     def NewPoint(self, x, t2):
         self.t2 = t2
@@ -60,6 +60,7 @@ class sglad():
         self.data.appendleft(p)
 
     def New_tact(self, t):  # добавляет время когда моторчик остановится
+        self.tacts.append(t)
         if len(self.tacts) > 4:
             self.tacts.pop(0)
 
@@ -82,5 +83,5 @@ class sglad():
             self.trendN = kb * self.trendN + 1
             self.trend = self.trendS / self.trendN
             self.level = newlevel
-            print(self.level, self.levelS, self.levelN, dt, ka, self.a)
+            # print(self.level, self.levelS, self.levelN, dt, ka, self.a)
         self.t_last = self.t
