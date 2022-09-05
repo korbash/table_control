@@ -329,27 +329,33 @@ class Puller():
                          Kp=0.1,
                          Kd=0.1):
         self.Read()
-
-        NewMosH += self.ms.x0
+        downPos = self.ms.motorM.position_min + 10
+        if upFl and not stFl:
+            NewMosH += self.ms.x0
+        else:
+            NewMosH = downPos
         t = Time.time()
-        downPos = self.ms.motorM.position_min + 20
-        self.lastPhase = self.phase
 
         if t < self.ms.tStart:  # горелка отодвинута
             self.phase = 0
-        elif t < self.ms.tFinish1 and self.phase !=1:  # мотрчик едет с постоянной скоростью
+        elif t < self.ms.tFinish1 and self.phase != 1:  # мотрчик едет с постоянной скоростью
             self.phase = 1
-            self.ms.PulFireMove(aEnd=30, vEnd=10, vFon=1)
+            self.ms.PulFireMove(aEnd=30, vEnd=10, vFon=self.vFon)
         elif t < self.ms.tFinish and self.phase != 2:  # моторчик тормозит
             self.phase = 2
-            self.ms.PulFireMove(aEnd=30, vEnd=10, vFon=1)
+            self.ms.PulFireMove(aEnd=30, vEnd=10, vFon=self.vFon)
         elif t >= self.ms.tFinish:  # моторчик закончил движение
             self.phase = 3
             if self.sg.level is not None:
                 self.dv = self.obrSvas(NewT, Ki, Kp, Kd)
             self.stFl = self.ms.PulMove(self.v, self.a, self.dv, stFl)
             self.sg.New_tact(self.ms.tFinish)
-            self.ms.PulFireMove(aEnd=30, vEnd=10, vFon=1)
+            self.vFon = self.ms.VforFireMove(NewMosH)
+            print(self.vFon, NewMosH, NewMosH - self.ms.motorM.Getposition())
+            if stFl:
+                self.ms.motorM.MoveTo(downPos)
+                return -1
+            self.ms.PulFireMove(aEnd=30, vEnd=10, vFon=self.vFon)
             self.tact += 1
         return 0
 

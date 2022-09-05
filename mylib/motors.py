@@ -617,17 +617,17 @@ class MotorSystem():
         # print(t, self.tStart, self.tStart1, self.tFinish1, self.tFinish)
         if t < self.tStart1:  # фаза ускорения
             dt = self.tStart1 - t
-            print('start:', self.tStart1 - self.tStart, dt)
+            # print('start:', self.tStart1 - self.tStart, dt)
             self.hFire += (self.tStart1 - self.tStart) * vFon
             hG = self.hFire - self.motorM.Getposition()
         elif self.tStart1 <= t < self.tFinish1:  # фаза равномерного движения
             dt = self.tFinish1 - t
-            print('move:', self.tFinish1 - self.tStart1, dt)
+            # print('move:', self.tFinish1 - self.tStart1, dt)
             self.hFire += (self.tFinish1 - self.tStart1) * vFon
             hG = self.hFire - self.motorM.Getposition()
         elif t < self.tFinish:  # фаза торможения
             dt = self.tFinish - t
-            print('stop:', self.tFinish - self.tFinish1, dt)
+            # print('stop:', self.tFinish - self.tFinish1, dt)
             self.hFire += (self.tFinish - self.tFinish1) * vFon
             h = self.motorM.CalculateMottonDist(dt, v=vEnd, a=aEnd)
             hG = self.hFire - h - self.motorM.Getposition()
@@ -644,6 +644,18 @@ class MotorSystem():
             dv = math.sqrt(dh / htr) * v
             # print(dt, htr, v, dv)
             self.motorM.Move(hG, v=v - dv, a=aEnd)
+
+    def VforFireMove(self, goal, alf=2, Vmin=0.1, Vmax=10):
+        h = goal - self.hFire
+        sign = math.copysign(1, h)
+        h = abs(h)
+        tau = self.tFinish - self.tStart
+        h0 = Vmin * tau
+        if h > h0:
+            V = Vmin + (h - h0) / tau / alf
+        else:
+            V = h / tau
+        return min(V, Vmax) * sign
 
     def IsInMotion(self, all=False):
         if (self.motorR.IsInMotion() or self.motorL.IsInMotion()
