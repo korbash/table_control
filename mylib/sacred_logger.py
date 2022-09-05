@@ -21,7 +21,7 @@ url = 'mongodb://{user}:{pw}@{host}:{port}/?replicaSet={rs}&authSource={auth_src
     rs='rs01',
     auth_src=os.environ['mango_database'])
 
-ex = Experiment('test')
+ex = Experiment('poolling')
 ex.observers.append(
     MongoObserver(url,
                   tlsCAFile=str(key_dir / 'cert.crt'),
@@ -35,7 +35,7 @@ ex.observers.append(
 
 @ex.automain
 def push_to_mango(_run):
-    metrics = ['power','tension','tensionEXPgl','x', 'dv']
+    metrics = ['power','tension','tensionEXPgl','x', 'dv','tensionGoal','kP','kI','dL']
     data = pd.read_csv(str(data_dir / 'pull_resalts.csv'))
     for i, d in data[metrics].iterrows():
         for n, v in d.items():

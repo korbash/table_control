@@ -75,7 +75,8 @@ class Puller():
     def Clear(self):
         self.data = pd.DataFrame(columns=[
             'time', 'tension', 'power', 'motorL', 'motorR', 'motorM', 'dt',
-            'x', 'vL', 'vR', 'vM', 'VdifRec', 'tensionWgl', 'tensionEXPgl', 'dv'
+            'x', 'vL', 'vR', 'vM', 'VdifRec', 'tensionWgl', 'tensionEXPgl', 'dv',
+            'tensionGoal','kP','kI','dL'
         ])
         self.sg = sglad()
 
@@ -97,6 +98,10 @@ class Puller():
         param['pressure'] = param['tension'] * self.ms.R_x(0)**2 / self.ms.R_x(
             param['x'])**2
         param['dv'] = self.dv
+        param['tensionGoal'] = self.NewT
+        param['kP'] = self.Kp
+        param['kI'] = self.Ki
+        param['dl'] = self.MoH
         # param['VdifRec'] = Vdiff(self.ms.R_x(param['x']),
         #                          self.ms.L_x(param['x']))
         self.sg.New(param['tension'], param['vL'])
@@ -339,6 +344,10 @@ class Puller():
                          Ki=0.1,
                          Kp=0.1,
                          Kd=0.1):
+        self.NewT = NewT
+        self.Ki = Ki
+        self.Kp = Kp
+        self.MoH = NewMosH
         self.Read()
 
         NewMosH += self.ms.x0
