@@ -113,11 +113,19 @@ class Puller():
         return self.Ttrend * tau + self.data.loc[len(self.data) - 1,
                                                  'tensionEXPgl']
 
+    def cof_forPidI(self, T0):
+        T = self.sg.level
+        if T > 2 * T0:
+            return 0
+        else:
+            return 2 - T / T0
+
     def obrSvas(self, T, Ki, Kp, Kd):
         Tnow = self.sg.level
         dT = self.sg.trend
         E = T - Tnow
-        self.pidI += E * Ki * Kp
+        self.pidI += max(E, 0) * Ki * Kp
+        self.pidI *= self.cof_forPidI(T)
         return Kp * (E + Kd * dT) + self.pidI
 
     def SetW(self,
@@ -351,7 +359,7 @@ class Puller():
             self.stFl = self.ms.PulMove(self.v, self.a, self.dv, stFl)
             self.sg.New_tact(self.ms.tFinish)
             self.vFon = self.ms.VforFireMove(NewMosH)
-            print(self.vFon, NewMosH, NewMosH - self.ms.motorM.Getposition())
+            # print(self.vFon, NewMosH, NewMosH - self.ms.motorM.Getposition())
             if stFl:
                 self.ms.motorM.MoveTo(downPos)
                 return -1
