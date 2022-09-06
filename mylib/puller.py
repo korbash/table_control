@@ -357,7 +357,7 @@ class Puller():
             self.sg.New_tact(self.ms.tFinish)
             self.vFon = self.ms.VforFireMove(NewMosH)
             # print(self.vFon, NewMosH, NewMosH - self.ms.motorM.Getposition())
-            if stFl:
+            if self.stFl:
                 self.ms.motorM.MoveTo(self.ms.downPos)
                 return -1
             print('starting')
