@@ -566,11 +566,16 @@ class MotorSystem():
 
     def ResetBeforePull(self):
         self.stFl = False
-        self.hFire = self.motorM.Getposition()
         self.tStart = 0
         self.tStart1 = 0
         self.tFinish1 = 0
         self.tFinish = 0
+        self.tact = 0
+        self.downPos = self.motorM.position_min + 10
+        self.motorM.MoveTo(self.downPos)
+        while self.motorM.IsInMotion():
+            pass
+        self.hFire = self.motorM.Getposition()
 
     def PulMove(self, v, a, dv, stFl):
         dt = 0  # рудимент пока похраним
@@ -608,13 +613,21 @@ class MotorSystem():
         self.tFinish1 = self.tFinish - v / a
         if self.tFinish1 < self.tStart1:
             self.tStart1 = self.tFinish1 = (self.tStart + self.tFinish) / 2
+        self.tact += 1
         return self.stFl
 
     def PulFireMove(self, aEnd, vEnd, vFon):
+        # t0 = Time.time()
         while self.motorM.IsInMotion():
             pass
         t = Time.time()
-        # print(t, self.tStart, self.tStart1, self.tFinish1, self.tFinish)
+        # tp = np.array([self.tStart, self.tStart1, self.tFinish1, self.tFinish])
+        # tp2 = tp[t0 - tp > 0]
+        # if len(tp2) > 0:
+        #     m = t0 - np.amax(tp2)
+        # else:
+        #     m = None
+        # print(self.tact, t - t0, t0 - self.tStart, tp - self.tStart)
         if t < self.tStart1:  # фаза ускорения
             dt = self.tStart1 - t
             # print('start:', self.tStart1 - self.tStart, dt)
@@ -645,7 +658,7 @@ class MotorSystem():
             # print(dt, htr, v, dv)
             self.motorM.Move(hG, v=v - dv, a=aEnd)
 
-    def VforFireMove(self, goal, alf=2, Vmin=0.1, Vmax=10):
+    def VforFireMove(self, goal, alf=3, Vmin=0.1, Vmax=10):
         h = goal - self.hFire
         sign = math.copysign(1, h)
         h = abs(h)

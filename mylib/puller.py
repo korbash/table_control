@@ -43,7 +43,6 @@ class Puller():
         self.v = 5
         self.a = 9
         self.dv = 0
-        self.tact = 0
         self.times = np.array([])
         self.trueKmasGl = np.array([])
 
@@ -75,13 +74,8 @@ class Puller():
     def Clear(self):
         self.data = pd.DataFrame(columns=[
             'time', 'tension', 'power', 'motorL', 'motorR', 'motorM', 'dt',
-<<<<<<< HEAD
             'x', 'vL', 'vR', 'vM', 'VdifRec', 'tensionWgl', 'tensionEXPgl', 'dv',
             'tensionGoal','kP','kI','dL'
-=======
-            'x', 'vL', 'vR', 'vM', 'VdifRec', 'tensionWgl', 'tensionEXPgl',
-            'hFire'
->>>>>>> 101feb5faa5584b47a09f2c215b44b1a555135bc
         ])
         self.sg = sglad()
 
@@ -103,30 +97,6 @@ class Puller():
         param['pressure'] = param['tension'] * self.ms.R_x(0)**2 / self.ms.R_x(
             param['x'])**2
         param['dv'] = self.dv
-<<<<<<< HEAD
-        param['tensionGoal'] = self.NewT
-        param['kP'] = self.Kp
-        param['kI'] = self.Ki
-        param['dl'] = self.MoH
-        # param['VdifRec'] = Vdiff(self.ms.R_x(param['x']),
-        #                          self.ms.L_x(param['x']))
-        self.sg.New(param['tension'], param['vL'])
-        self.data.loc[len(self.data)] = param
-        if self.sg.expGl.size > 1:
-            dt = (param['time'] - self.data['time'].iloc[-10]) / 10
-            self.Ttrend = self.sg.trend / dt
-            tNew = param['time']
-            tSG = self.data.loc[self.sg.iGl, 'time']
-            n = (tNew - tSG) / dt
-            T1 = self.sg.expGl.iloc[-2]
-            T2 = self.sg.expGl.iloc[-1]
-            Tnew = T1 + (T2 - T1) * (n + 1)
-            self.data.loc[self.sg.iGl, 'tensionWgl'] = self.sg.wGl.iloc[-1]
-            self.data.loc[range(self.sg.iGl, len(self.data)),
-                          'tensionEXPgl'] = np.linspace(
-                              T2, Tnew,
-                              len(self.data) - self.sg.iGl)
-=======
         param['hFire'] = self.ms.hFire
         self.sg.NewPoint(param['tension'], param['time'])
         l = len(self.data)
@@ -137,7 +107,6 @@ class Puller():
                 self.wi += 1
                 self.data.loc[self.wi, 'tensionWgl'] = self.sg.mean
                 self.data.loc[self.wi, 'tensionEXPgl'] = self.sg.level
->>>>>>> 101feb5faa5584b47a09f2c215b44b1a555135bc
 
     def Tprog(self, tau=0):
         return self.Ttrend * tau + self.data.loc[len(self.data) - 1,
@@ -154,15 +123,9 @@ class Puller():
         Tnow = self.sg.level
         dT = self.sg.trend
         E = T - Tnow
-<<<<<<< HEAD
-        self.pidI += E * Ki * Kp
-        per = self.sg.periud
-        return Kp * (E + (Kd + per) * dT) + self.pidI
-=======
         self.pidI += max(E, 0) * Ki * Kp
         self.pidI *= self.cof_forPidI(T)
         return Kp * (E + Kd * dT) + self.pidI
->>>>>>> 101feb5faa5584b47a09f2c215b44b1a555135bc
 
     def SetW(self,
              wide,
@@ -353,10 +316,7 @@ class Puller():
         return x0, a, b, data
 
     def MotorsControlStart(self):
-        self.ah_max = 20
         self.phase = 3
-        self.tEnd = 0
-        self.tEnd2 = float('+inf')
         self.isUp = False
         self.stFl = False
         self.ms.ResetBeforePull()
@@ -366,9 +326,7 @@ class Puller():
                          NewT,
                          upFl=True,
                          stFl=False,
-                         vsFl=False,
                          dhKof=0.5,
-                         ah=9,
                          Ki=0.1,
                          Kp=0.1,
                          Kd=0.1):
@@ -377,21 +335,20 @@ class Puller():
         self.Kp = Kp
         self.MoH = NewMosH
         self.Read()
-        downPos = self.ms.motorM.position_min + 10
         if upFl and not stFl:
             NewMosH += self.ms.x0
         else:
-            NewMosH = downPos
+            NewMosH = self.ms.downPos
         t = Time.time()
 
-        if t < self.ms.tStart:  # горелка отодвинута
-            self.phase = 0
-        elif t < self.ms.tFinish1 and self.phase != 1:  # мотрчик едет с постоянной скоростью
+        if self.ms.tStart1 <= t < self.ms.tFinish1 and self.phase != 1:  # мотрчик едет с постоянной скоростью
             self.phase = 1
-            self.ms.PulFireMove(aEnd=30, vEnd=10, vFon=self.vFon)
-        elif t < self.ms.tFinish and self.phase != 2:  # моторчик тормозит
+            print('moving vith constant speed')
+            self.ms.PulFireMove(aEnd=20, vEnd=dhKof, vFon=self.vFon)
+        elif self.ms.tFinish1 <= t < self.ms.tFinish and self.phase != 2:  # моторчик тормозит
             self.phase = 2
-            self.ms.PulFireMove(aEnd=30, vEnd=10, vFon=self.vFon)
+            print('stoping')
+            self.ms.PulFireMove(aEnd=20, vEnd=dhKof, vFon=self.vFon)
         elif t >= self.ms.tFinish:  # моторчик закончил движение
             self.phase = 3
             if self.sg.level is not None:
@@ -401,81 +358,10 @@ class Puller():
             self.vFon = self.ms.VforFireMove(NewMosH)
             # print(self.vFon, NewMosH, NewMosH - self.ms.motorM.Getposition())
             if stFl:
-                self.ms.motorM.MoveTo(downPos)
+                self.ms.motorM.MoveTo(self.ms.downPos)
                 return -1
-<<<<<<< HEAD
-            else:
-                if not self.ms.IsInMotion():
-                    self.stFl = self.ms.PulMove(self.v, self.a, 0, stFl)
-                    self.sg.NewStTime()
-                    self.tEnd = t + self.ms.motorR.CalculateMottonTime()
-                if self.tEnd > self.tEnd2:
-                    self.tStart = self.tEnd
-                if not self.ms.motorM.IsInMotion():
-                    if upFl:
-                        if not self.isUp:
-                            self.ms.motorM.MoveTo(NewMosH + dhMax * dhKof)
-                            self.tEnd2 = t + self.ms.motorM.CalculateMottonTime(
-                            )
-                            self.isUp = True
-                    else:
-                        if self.isUp:
-                            self.ms.motorM.MoveTo(downPos)
-                            self.isUp = False
-
-        if self.phase == 3:
-            if self.phase != self.lastPhase:
-                if self.ms.IsInMotion():
-                    self.phase = self.lastPhase
-                    return 0
-                if not upFl or self.stFl:
-                    self.tStart = float('+inf')
-                    self.tStart1 = 0
-                    self.tFinish1 = 0
-                    self.tFinish = 0
-                    self.tEnd = 0
-                    self.tEnd2 = float('+inf')
-                else:
-                    if self.tact > 4:
-                        if vsFl and self.tact > 6:
-                            self.dv = self.obrSvas(NewT, Ki, Kp, Kd)
-                            # self.tFinish - self.tStart,
-                        # print(self.v, self.a, self.dv, self.t_new, self.t_last, self.T_new, self.T_last)
-                    self.stFl = self.ms.PulMove(self.v, self.a, self.dv, stFl)
-                    self.sg.NewStTime()
-                    self.tStart = Time.time()
-                    self.tStart1 = self.tStart + self.v / self.a
-                    self.tFinish = self.tStart + self.ms.motorR.CalculateMottonTime(
-                    )
-                    self.tFinish1 = self.tFinish - self.v / self.a
-                    if self.tFinish1 < self.tStart1:
-                        self.tStart1 = self.tFinish1 = (self.tStart +
-                                                        self.tFinish) / 2
-                    dh1 = self.ms.motorM.Getposition() - NewMosH
-                    p = self.ms.motorM.Getposition()
-                    if abs(dh1) > dhMax:
-                        dh1 = dhMax * np.sign(dh1)
-                        print('you so fast, i think it is too math')
-                    vh = 1 / 2 * ah * (tau - math.sqrt(
-                        (ah * tau**2 - 4 * abs(dh1)) / ah))
-                    while self.ms.motorM.IsInMotion():
-                        Time.sleep(0.001)
-                    self.ms.motorM.Move(-dh1, vh, ah)
-                    self.tact += 1
-
-        if self.phase == 2:
-            if self.phase != self.lastPhase:
-                while self.ms.motorM.IsInMotion():
-                    Time.sleep(0.001)
-                # p=self.motorM.Getposition()
-                dh = dhMax * dhKof
-                vh = 1 / 2 * ah * (tau - math.sqrt(
-                    (ah * tau**2 - 4 * dh) / ah))
-                self.ms.motorM.Move(-dh, vh, ah)
-=======
-            self.ms.PulFireMove(aEnd=30, vEnd=10, vFon=self.vFon)
-            self.tact += 1
->>>>>>> 101feb5faa5584b47a09f2c215b44b1a555135bc
+            print('starting')
+            self.ms.PulFireMove(aEnd=20, vEnd=dhKof, vFon=self.vFon)
         return 0
 
     def Test(self):

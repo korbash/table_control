@@ -1,3 +1,5 @@
+import numpy as np
+
 def www(a):
     print(1)
     yield a
@@ -13,8 +15,7 @@ for i in www(3):
 #     # print(i)
 #     print(www())
 
-test = float('inf')
-test2 = float('+inf')
-test2 = float('-inf')
-print(test > 1000)
-print(test < -1000)
+tp = np.array([2,5,3,1])
+tpg = tp[2.5 - tp < 0]
+m = np.amax(tpg)
+print(tpg,m)
