@@ -45,6 +45,7 @@ class Puller():
         self.dv = 0
         self.times = np.array([])
         self.trueKmasGl = np.array([])
+        self.Tgoal = 0
 
         self.VdifRec = 0
 
@@ -98,6 +99,7 @@ class Puller():
             param['x'])**2
         param['dv'] = self.dv
         param['hFire'] = self.ms.hFire
+        param['tensionGoal'] = self.Tgoal
         self.sg.NewPoint(param['tension'], param['time'])
         l = len(self.data)
         self.data.loc[l] = param
@@ -343,11 +345,11 @@ class Puller():
 
         if self.ms.tStart1 <= t < self.ms.tFinish1 and self.phase != 1:  # мотрчик едет с постоянной скоростью
             self.phase = 1
-            print('moving vith constant speed')
+            # print('moving vith constant speed')
             self.ms.PulFireMove(aEnd=20, vEnd=dhKof, vFon=self.vFon)
         elif self.ms.tFinish1 <= t < self.ms.tFinish and self.phase != 2:  # моторчик тормозит
             self.phase = 2
-            print('stoping')
+            # print('stoping')
             self.ms.PulFireMove(aEnd=20, vEnd=dhKof, vFon=self.vFon)
         elif t >= self.ms.tFinish:  # моторчик закончил движение
             self.phase = 3
@@ -360,7 +362,7 @@ class Puller():
             if self.stFl:
                 self.ms.motorM.MoveTo(self.ms.downPos)
                 return -1
-            print('starting')
+            # print('starting')
             self.ms.PulFireMove(aEnd=20, vEnd=dhKof, vFon=self.vFon)
         return 0
 
