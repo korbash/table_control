@@ -13,7 +13,7 @@ from .utilities import *
 from . import driwers as dr
 
 
-def caunter(r0=62.5, Ltorch=0.6, lw=30, rw=20, dr=1):
+def caunter(r0=62.5, Ltorch=0.6, lw=30, rw=15, dr=1):
     def integr(y, x):
         inte = np.hstack((0, cumtrapz(y, x)))
         return inte
@@ -27,7 +27,7 @@ def caunter(r0=62.5, Ltorch=0.6, lw=30, rw=20, dr=1):
         97.9162688, 36.01154809, 22.44529847, 16.77319816, 14.08756338,
         13.28444282, 14.76885344, 19.37716274, 27.14935304, 37.4940508,
         49.76789206, 63.43683519, 78.09095269
-    ]) / 5
+    ]) / 2
     Theta = interp1d(radius, thetas, kind='cubic')
     r = np.arange(rw, r0, dr)
     dz = Map(lambda x: 1 / float(Theta(x)), r)
@@ -658,7 +658,7 @@ class MotorSystem():
             # print(dt, htr, v, dv)
             self.motorM.Move(hG, v=v - dv, a=aEnd)
 
-    def VforFireMove(self, goal, alf=3, Vmin=0.1, Vmax=10):
+    def VforFireMove(self, goal, alf=6, Vmin=0.1, Vmax=10):
         h = goal - self.hFire
         sign = math.copysign(1, h)
         h = abs(h)

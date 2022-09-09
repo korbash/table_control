@@ -127,6 +127,7 @@ class Puller():
         E = T - Tnow
         self.pidI += max(E, 0) * Ki * Kp
         self.pidI *= self.cof_forPidI(T)
+        self.pidI = min(self.pidI, 0.8)
         return Kp * (E + Kd * dT) + self.pidI
 
     def SetW(self,
