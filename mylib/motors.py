@@ -597,7 +597,7 @@ class MotorSystem():
             self.Move(dLnew, v, a, alf * v, dt)
 
         else:
-            self.Move(-L, v, a, alf * v, dt)
+            self.Move(-L, v, a, 0, dt)
             t = self.motorR.CalculateMottonTime(L, v, a)
             Xnew = x + t * alf * v
             print("xMax=", self.xMax, "L_x(xMax)=",
