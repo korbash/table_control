@@ -27,7 +27,7 @@ def caunter(r0=62.5, Ltorch=0.6, lw=30, rw=15, dr=1):
         97.9162688, 36.01154809, 22.44529847, 16.77319816, 14.08756338,
         13.28444282, 14.76885344, 19.37716274, 27.14935304, 37.4940508,
         49.76789206, 63.43683519, 78.09095269
-    ]) / 2
+    ])# / 2
     Theta = interp1d(radius, thetas, kind='cubic')
     r = np.arange(rw, r0, dr)
     dz = Map(lambda x: 1 / float(Theta(x)), r)
@@ -366,7 +366,7 @@ class MotorSystem():
             description="Forgot motion")
         self.forgotButton.on_click(self.ForgotMotion)
 
-        self.funL_x, self.funR_x, self.xMax = caunter()
+        self.funL_x, self.funR_x, self.xMax = caunter(lw=20)
 
         def f(fun, xMax, x):
 
