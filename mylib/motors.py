@@ -64,12 +64,13 @@ class Motor():
     v_max = 30
     a_max = 30
 
-    def __init__(self, mot, motor_name, p_max=99):
+    def __init__(self, mot, motor_name, p_max=99, blocking=False):
 
         self.mot = mot
         self.name = motor_name
         self.position_max = p_max
         self.position_min = 0
+        self.blocking = blocking
         self.stopFlag = False
         self.points = np.array([])
         self.startsTime = np.array([Time.time()])
@@ -138,7 +139,8 @@ class Motor():
             self.finX = np.append(self.finX, x)
             # print("Move_to_iner", self.name, "  ", self.saveX)
             # print('v and a   ', self.saveV,"  ",self.saveA)
-            self.mot.move_to(x)
+            if x != self.Getposition():
+                self.mot.move_to(x, blocking=self.blocking)
         return flag
 
     def Getposition(self, memory=True, analitic=True, motorNotMove=False):
