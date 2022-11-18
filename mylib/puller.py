@@ -76,7 +76,7 @@ class Puller():
         self.data = pd.DataFrame(columns=[
             'time', 'tension', 'power', 'motorL', 'motorR', 'motorM', 'dt',
             'x', 'vL', 'vR', 'vM', 'VdifRec', 'tensionWgl', 'tensionEXPgl', 'dv',
-            'tensionGoal','kP','kI','dL'
+            'tensionGoal','kP','kI','dL', 'Le'
         ])
         self.sg = sglad()
 
@@ -92,6 +92,7 @@ class Puller():
         tFn = Time.time()
         param['dt'] = tFn - tSt
         param['x'], param['L'] = self.ms.calcX_L()
+        param['Le'] = self.ms.funL_x(param['x'])
         param['vL'], param['aL'] = self.ms.motorL.calcX_V_A()[1:3]
         param['vR'], param['aR'] = self.ms.motorR.calcX_V_A()[1:3]
         param['vM'], param['aM'] = self.ms.motorM.calcX_V_A()[1:3]
