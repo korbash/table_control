@@ -62,16 +62,11 @@ class Puller():
 
     def Save(self):
         save_data(self.data, name='pull_resalts.csv')
-        ex.run()
-        ex.add_artifact(str(main_path / 'data' / 'pull_resalts.csv'))
-        # Save(self.data, name='crude.csv', dirSubName='main_data\\DATE')
-        # Save(pd.DataFrame({
-        #     'time': self.times,
-        #     'kof': self.trueKmas,
-        #     'sglKof': self.trueKmasGl,
-        # }),
-        #      name='odrKof.csv',
-        #      dirSubName='main_data\\DATE')
+        metrics = [
+            'power', 'tension', 'tensionEXPgl', 'x', 'dv', 'tensionGoal', 'kP',
+            'kI', 'dL'
+        ]
+        push(self.data, name='pull_resalts.csv', exp_name='pulling')
 
     def Clear(self):
         self.data = pd.DataFrame(columns=[
