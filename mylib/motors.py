@@ -2,6 +2,7 @@ from ast import Yield
 from tkinter import Y
 import numpy as np
 import math
+import asyncio
 from scipy import optimize
 from scipy.integrate import cumtrapz
 from scipy.interpolate import interp1d
@@ -165,18 +166,18 @@ class Motor():
         else:
             return self.mot.is_in_motion
 
-    def Move(self, dp, v=v_norm, a=a_norm):
+    async def Move(self, dp, v=v_norm, a=a_norm):
         while (self.IsInMotion()):
-            pass
+            asyncio.sleep(0)
         p = self.Getposition(memory=False, motorNotMove=True)
         v = self.chekV_A(v, a, dp)
         self.Set_velocity(v, a)
         flag = self.Move_to_iner(p + dp)
         return flag
 
-    def MoveTo(self, x, v=v_norm, a=a_norm):
+    async def MoveTo(self, x, v=v_norm, a=a_norm):
         while (self.IsInMotion()):
-            pass
+            asyncio.sleep(0)
         x0 = self.Getposition(memory=False, motorNotMove=True)
         v = self.chekV_A(v, a, x - x0)
         self.Set_velocity(v, a)
@@ -509,7 +510,7 @@ class MotorSystem():
         self.motorL.MoveTo(self.motorL.position_max - L - dL, v, a)
         self.motorR.MoveTo(self.motorR.position_max - L + dL, v, a)
 
-    def Move(self, L, v=-1, a=-1, vdiff=0, da=0):
+    async def Move(self, L, v=-1, a=-1, vdiff=0, da=0):
         if (v == -1):
             v = self.v_norm
         if (a == -1):
@@ -532,7 +533,7 @@ class MotorSystem():
         sB = self.motorL.CalculateMottonDist(t=t, v=v * coffB, a=a * coffB)
 
         while self.IsInMotion():
-            pass
+            asyncio.sleep(0)
         xL = self.motorL.Getposition(analitic=False)
         xR = self.motorR.Getposition(analitic=False)
         # print("Move", sL/coffL, sB/coffB, L, vdiff, xL, xR)
@@ -611,17 +612,17 @@ class MotorSystem():
 
         self.tStart = Time.time()
         self.tStart1 = self.tStart + v / a
-        self.tFinish = self.tStart + self.motorR.CalculateMottonTime()
+        self.tFinish = self.tStart + self.motorR.CalculateMottonTime() * 0.95
         self.tFinish1 = self.tFinish - v / a
         if self.tFinish1 < self.tStart1:
             self.tStart1 = self.tFinish1 = (self.tStart + self.tFinish) / 2
         self.tact += 1
         return self.stFl
 
-    def PulFireMove(self, aEnd, vEnd, vFon):
+    async def PulFireMove(self, aEnd, vEnd, vFon):
         # t0 = Time.time()
         while self.motorM.IsInMotion():
-            pass
+            asyncio.sleep(0)
         t = Time.time()
         # tp = np.array([self.tStart, self.tStart1, self.tFinish1, self.tFinish])
         # tp2 = tp[t0 - tp > 0]
@@ -651,6 +652,8 @@ class MotorSystem():
             return
         htr = self.motorM.CalculateMottonDist(dt, v=1000, a=aEnd)
         hMax = self.motorM.CalculateMottonDist(dt, v=Motor.v_max, a=aEnd)
+        hMax *= 0.9
+        hG *= 0.9
         if hMax < abs(hG):
             self.motorM.Move(math.copysign(hMax, hG), v=Motor.v_max, a=aEnd)
         else:
