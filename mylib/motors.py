@@ -168,24 +168,24 @@ class Motor():
 
     async def Move(self, dp, v=v_norm, a=a_norm):
         while (self.IsInMotion()):
-            asyncio.sleep(0)
+            await asyncio.sleep(0)
         p = self.Getposition(memory=False, motorNotMove=True)
         v = self.chekV_A(v, a, dp)
         self.Set_velocity(v, a)
         flag = self.Move_to_iner(p + dp)
         while (self.IsInMotion()):
-            asyncio.sleep(0)
+            await asyncio.sleep(0)
         return flag
 
     async def MoveTo(self, x, v=v_norm, a=a_norm):
         while (self.IsInMotion()):
-            asyncio.sleep(0)
+            await asyncio.sleep(0)
         x0 = self.Getposition(memory=False, motorNotMove=True)
         v = self.chekV_A(v, a, x - x0)
         self.Set_velocity(v, a)
         flag = self.Move_to_iner(x)
         while (self.IsInMotion()):
-            asyncio.sleep(0)
+            await asyncio.sleep(0)
         return flag
 
     def Test(self):
@@ -537,7 +537,7 @@ class MotorSystem():
         sB = self.motorL.CalculateMottonDist(t=t, v=v * coffB, a=a * coffB)
 
         while self.IsInMotion():
-            asyncio.sleep(0)
+            await asyncio.sleep(0)
         xL = self.motorL.Getposition(analitic=False)
         xR = self.motorR.Getposition(analitic=False)
         # print("Move", sL/coffL, sB/coffB, L, vdiff, xL, xR)
@@ -556,7 +556,7 @@ class MotorSystem():
             return -1
         
         while self.IsInMotion():
-            asyncio.sleep(0)
+            await asyncio.sleep(0)
         return 0
 
     def calcX_L(self, lStart=None, centrStart=None, posL=None, posR=None):
@@ -587,6 +587,9 @@ class MotorSystem():
             pass
         self.hFire = self.motorM.Getposition()
 
+    async def LRoscillation():
+        pass
+    
     async def PulMove(self, v, a, dv, stFl):
         dt = 0  # рудимент пока похраним
         alf = dv / v
@@ -629,7 +632,7 @@ class MotorSystem():
     async def PulFireMove(self, aEnd, vEnd, vFon):
         # t0 = Time.time()
         while self.motorM.IsInMotion():
-            asyncio.sleep(0)
+            await asyncio.sleep(0)
         t = Time.time()
         # tp = np.array([self.tStart, self.tStart1, self.tFinish1, self.tFinish])
         # tp2 = tp[t0 - tp > 0]
