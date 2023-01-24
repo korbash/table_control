@@ -331,7 +331,7 @@ class Motor():
 class MotorSystem():
     stopFlag = False
 
-    def __init__(self, simulate=False, simulator=None):
+    def __init__(self, simulate=False, simulator=None, blocking=False):
         if simulate:
             motL = simulator.motorL
             motR = simulator.motorR
@@ -342,9 +342,9 @@ class MotorSystem():
             motR = dr.motor(90113197)
             motM = dr.motor(90113195)
 
-        self.motorL = Motor(motL, "motor L")
-        self.motorR = Motor(motR, "motor R")
-        self.motorM = Motor(motM, "motor M")  # начальная позиция 60
+        self.motorL = Motor(motL, "motor L", blocking=blocking)
+        self.motorR = Motor(motR, "motor R", blocking=blocking)
+        self.motorM = Motor(motM, "motor M", blocking=blocking)  # начальная позиция 60
 
         self.a_norm = self.motorL.a_norm
         self.v_norm = self.motorL.v_norm

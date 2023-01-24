@@ -22,7 +22,7 @@ def Vdiff(R, L):
 class Puller():
     kStr = 58591.17  # gram/mm * mm жёзскость пружины
 
-    def __init__(self, simulate=False):
+    def __init__(self, simulate=False, blocking=False):
         if simulate:
             self.sim = simulator(104, self.kStr,
                                  -2.078990076470489)  # -0.0075585384235655265
@@ -37,7 +37,7 @@ class Puller():
         self.tg = ReadingDevise(tg, 'tension', weightCoef=-2.078990076470489)
         Time.sleep(0.001)
         self.pm = ReadingDevise(pm, 'power', weightCoef=1000)
-        self.ms = MotorSystem(simulate=simulate, simulator=self.sim)
+        self.ms = MotorSystem(simulate=simulate, simulator=self.sim, blocking=blocking)
         self.pidI = 0
         self.trueKmas = np.array([])
         self.Clear()
