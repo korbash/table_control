@@ -1,3 +1,4 @@
+import asyncio
 import numpy as np
 import math
 import pandas as pd
@@ -150,9 +151,10 @@ class Puller():
             dx = (wide - w) / k
             if not quiet:
                 print('w= ', w, ', dw= ', w - wide, ', dx=  ', dx)
-            self.ms.motorR.MoveTo(self.ms.motorR.Getposition(analitic=True) -
+            asyncio.run(
+                self.ms.motorR.MoveTo(self.ms.motorR.Getposition(analitic=True) -
                                   dx,
-                                  a=1)
+                                  a=1))
             while self.ms.motorR.IsInMotion():
                 pass
             Time.sleep(0.1)
@@ -183,11 +185,11 @@ class Puller():
         self.SetW(T, dw=0.1, tau=1, quiet=quiet)
         fitData = pd.DataFrame(columns=['a', 'b', 'x0'])
         for i in range(n):
-            self.ms.motorM.MoveTo(startPos)
+            asyncio.run(self.ms.motorM.MoveTo(startPos))
             x0, a, b = self.SetH_podgon(Tpr=Tpr, v=v1, quiet=quiet)
             xStart = x0 + 0.9
             xFin = x0 - 1.2
-            self.ms.motorM.MoveTo(xStart)
+            asyncio.run(self.ms.motorM.MoveTo(xStart))
             while self.ms.motorM.IsInMotion():
                 pass
             Time.sleep(1)
@@ -228,7 +230,7 @@ class Puller():
 
         T0 = self.tg.ReadValue(tau=2, DataB=DataBase())
         b = T = T0
-        self.ms.motorM.MoveTo(0, v, 1)
+        asyncio.run(self.ms.motorM.MoveTo(0, v, 1))
         i = 0
         DataB = DataBase()
         while T - T0 < Tpr:
@@ -242,7 +244,7 @@ class Puller():
         self.ms.Start('M')
         x0 = self.ms.motorM.Getposition(analitic=True) + 1
         # print(x0)
-        self.ms.motorM.MoveTo(x0 + 1.5)
+        asyncio.run(self.ms.motorM.MoveTo(x0 + 1.5))
         data = DataB.data.copy()
         # print(data)
         # print(errorFun(data, a, b, x0))
@@ -289,14 +291,14 @@ class Puller():
 
         i = 0
         DataB = DataBase()
-        self.ms.motorM.MoveTo(xStart, 1, 1)
-        self.ms.motorM.MoveTo(xFin, v, 1)
+        asyncio.run(self.ms.motorM.MoveTo(xStart, 1, 1))
+        asyncio.run(self.ms.motorM.MoveTo(xFin, v, 1))
         while self.ms.motorM.IsInMotion():
             i += 1
             self.tg.ReadValue(DataB=DataB)
             DataB.Wright({'motorM': self.ms.motorM.Getposition()},
                          inExsist=True)
-        self.ms.motorM.MoveTo(xStart, v, 1)
+        asyncio.run(self.ms.motorM.MoveTo(xStart, v, 1))
         while self.ms.motorM.IsInMotion():
             i += 1
             self.tg.ReadValue(DataB=DataB)
@@ -346,10 +348,10 @@ class Puller():
         else:
             NewMosH = self.ms.downPos
         t = Time.time()
-
+        tasks = []
         if self.ms.tStart1 <= t < self.ms.tFinish1 and self.phase != 1:  # мотрчик едет с постоянной скоростью
             self.phase = 1
-            # print('moving vith constant speed')
+            # print('moving with constant speed')
             self.ms.PulFireMove(aEnd=20, vEnd=dhKof, vFon=self.vFon)
         elif self.ms.tFinish1 <= t < self.ms.tFinish and self.phase != 2:  # моторчик тормозит
             self.phase = 2
