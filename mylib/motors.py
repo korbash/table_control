@@ -165,16 +165,20 @@ class Motor():
             return isin
         else:
             return self.mot.is_in_motion
+        
+    async def WaitWhileInMotion(self, waitForTrue=True):
+        while not self.IsInMotion() and waitForTrue:
+            await asyncio.sleep(0)
+        while self.IsInMotion():
+            await asyncio.sleep(0)
 
     async def Move(self, dp, v=v_norm, a=a_norm):
-        while (self.IsInMotion()):
-            await asyncio.sleep(0)
+        await self.WaitWhileInMotion(waitForTrue=False)
         p = self.Getposition(memory=False, motorNotMove=True)
         v = self.chekV_A(v, a, dp)
         self.Set_velocity(v, a)
         flag = self.Move_to_iner(p + dp)
-        while (self.IsInMotion()):
-            await asyncio.sleep(0)
+        await self.WaitWhileInMotion()
         return flag
 
     async def MoveTo(self, x, v=v_norm, a=a_norm):
