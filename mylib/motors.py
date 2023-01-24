@@ -610,7 +610,7 @@ class MotorSystem():
 
         self.tStart = Time.time()
         self.tStart1 = self.tStart + v / a
-        self.tFinish = self.tStart + self.motorR.CalculateMottonTime() * .95
+        self.tFinish = self.tStart + self.motorR.CalculateMottonTime()
         self.tFinish1 = self.tFinish - v / a
         if self.tFinish1 < self.tStart1:
             self.tStart1 = self.tFinish1 = (self.tStart + self.tFinish) / 2
@@ -650,8 +650,6 @@ class MotorSystem():
             return
         htr = self.motorM.CalculateMottonDist(dt, v=1000, a=aEnd)
         hMax = self.motorM.CalculateMottonDist(dt, v=Motor.v_max, a=aEnd)
-        hMax *= .9
-        hG *= .9
         if hMax < abs(hG):
             self.motorM.Move(math.copysign(hMax, hG), v=Motor.v_max, a=aEnd)
         else:
