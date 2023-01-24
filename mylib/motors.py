@@ -173,6 +173,8 @@ class Motor():
         v = self.chekV_A(v, a, dp)
         self.Set_velocity(v, a)
         flag = self.Move_to_iner(p + dp)
+        while (self.IsInMotion()):
+            asyncio.sleep(0)
         return flag
 
     async def MoveTo(self, x, v=v_norm, a=a_norm):
@@ -182,6 +184,8 @@ class Motor():
         v = self.chekV_A(v, a, x - x0)
         self.Set_velocity(v, a)
         flag = self.Move_to_iner(x)
+        while (self.IsInMotion()):
+            asyncio.sleep(0)
         return flag
 
     def Test(self):
@@ -550,6 +554,9 @@ class MotorSystem():
 
         if (flag < 0):
             return -1
+        
+        while self.IsInMotion():
+            asyncio.sleep(0)
         return 0
 
     def calcX_L(self, lStart=None, centrStart=None, posL=None, posR=None):
@@ -580,7 +587,7 @@ class MotorSystem():
             pass
         self.hFire = self.motorM.Getposition()
 
-    def PulMove(self, v, a, dv, stFl):
+    async def PulMove(self, v, a, dv, stFl):
         dt = 0  # рудимент пока похраним
         alf = dv / v
         x, L = self.calcX_L()
@@ -597,10 +604,10 @@ class MotorSystem():
         t = v / a
         dLnew += v * t / 2 * np.sign(dLnew)
         if Xnew < self.xMax and not stFl:
-            self.Move(dLnew, v, a, alf * v, dt)
+            await self.Move(dLnew, v, a, alf * v, dt)
 
         else:
-            self.Move(-L, v, a, 0, dt)
+            await self.Move(-L, v, a, 0, dt)
             t = self.motorR.CalculateMottonTime(L, v, a)
             Xnew = x + t * alf * v
             print("xMax=", self.xMax, "L_x(xMax)=",

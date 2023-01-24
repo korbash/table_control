@@ -1,6 +1,8 @@
 name: pooler
+channels:
+  - conda-forge
 dependencies:
-  - python=3.8
+  - python=3.11
   - jupyterlab
   - yapf
   - pip

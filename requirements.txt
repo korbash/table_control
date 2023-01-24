@@ -1,15 +1,15 @@
 pandas
 scipy
-ipywidgets
-PySimpleGUI
-bokeh
-jupyter_bokeh
-jupyter-ui-poll
-pyserial
-pyusb
-matplotlib
-sacred
-pymongo
-python-dotenv
-queuelib
+# ipywidgets
+# PySimpleGUI
+# bokeh
+# jupyter_bokeh
+# jupyter-ui-poll
+# pyserial
+# pyusb
+# matplotlib
+# sacred
+# pymongo
+# python-dotenv
+# queuelib
 
