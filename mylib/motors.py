@@ -561,6 +561,8 @@ class MotorSystem():
             flag += self.motorR.Set_velocity(v=v * coffB, a=a * coffB - da)
             flag += self.motorR.Move_to_iner(xR - sB)
             flag += self.motorL.Move_to_iner(xL + sL)
+        await self.motorL.WaitWhileInMotion()
+        await self.motorL.WaitWhileInMotion()
 
         if (flag < 0):
             return -1
@@ -613,7 +615,7 @@ class MotorSystem():
             # print(-dLnew, v, a, alf, dt, "  case1")
 
         t = v / a
-        print('dLnew:', dLnew)
+        print('dLnew:', dLnew, 'Xnew:', Xnew, ':', dLnew)
         dLnew += v * t / 2 * np.sign(dLnew)
         if Xnew < self.xMax and not stFl:
             await self.Move(dLnew, v, a, alf * v, dt)
