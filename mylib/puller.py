@@ -62,11 +62,16 @@ class Puller():
 
     def Save(self):
         save_data(self.data, name='pull_resalts.csv')
-        metrics = [
-            'power', 'tension', 'tensionEXPgl', 'x', 'dv', 'tensionGoal', 'kP',
-            'kI', 'dL'
-        ]
-        push(self.data, name='pull_resalts.csv', exp_name='pulling')
+        ex.run()
+        ex.add_artifact(str(main_path / 'data' / 'pull_resalts.csv'))
+        # Save(self.data, name='crude.csv', dirSubName='main_data\\DATE')
+        # Save(pd.DataFrame({
+        #     'time': self.times,
+        #     'kof': self.trueKmas,
+        #     'sglKof': self.trueKmasGl,
+        # }),
+        #      name='odrKof.csv',
+        #      dirSubName='main_data\\DATE')
 
     def Clear(self):
         self.data = pd.DataFrame(columns=[
@@ -166,157 +171,6 @@ class Puller():
         })
         k_data.plot(x='x', y='w')'''
         return w
-
-    def SetH_avto(self,
-                  n=1,
-                  quiet=True,
-                  T=50,
-                  v1=1,
-                  v2=0.05,
-                  Tpr=6,
-                  startPos=None):
-        if startPos == None:
-            startPos = self.ms.motorM.Getposition()
-        self.SetW(T, dw=0.1, tau=1, quiet=quiet)
-        fitData = pd.DataFrame(columns=['a', 'b', 'x0'])
-        for i in range(n):
-            asyncio.run(self.ms.motorM.MoveTo(startPos))
-            x0, a, b = self.SetH_podgon(Tpr=Tpr, v=v1, quiet=quiet)
-            xStart = x0 + 0.9
-            xFin = x0 - 1.2
-            asyncio.run(self.ms.motorM.MoveTo(xStart))
-            while self.ms.motorM.IsInMotion():
-                pass
-            Time.sleep(1)
-            x0, a, b, data = self.SetH(xStart=xStart,
-                                       xFin=xFin,
-                                       v=v2,
-                                       quiet=quiet,
-                                       x0=x0,
-                                       a=a,
-                                       b=b)
-            fitData.loc[i] = [a, b, x0]
-        Save(fitData, dirSubName='hM_T\\DATE', name='a_b_x0.csv')
-        Save(data, dirSubName='hM_T\\DATE', name='fit.csv')
-        x0 = fitData['x0'].mean()
-        self.ms.x0 = x0
-        return x0
-
-    def SetH_podgon(self, Tpr=6, v=1, quiet=True, a=7):
-        def get_f(a, b, x0):
-            def f(x):
-                if x < x0:
-                    return a * (x - x0)**2 + b
-                else:
-                    return b
-
-            return f
-
-        def errorFun(data_loc, a, b, x0):
-            f = get_f(a, b, x0)
-            data_loc['error'] = (data_loc['motorM'].apply(f) -
-                                 data_loc['tension'])**2
-            return sum(data_loc['error'])
-
-        # def f(x):
-        #     err = errorFun(data, x[0], x[1], x[2])
-        #     print(err)
-        #     return err
-
-        T0 = self.tg.ReadValue(tau=2, DataB=DataBase())
-        b = T = T0
-        asyncio.run(self.ms.motorM.MoveTo(0, v, 1))
-        i = 0
-        DataB = DataBase()
-        while T - T0 < Tpr:
-            i += 1
-            T = self.tg.ReadValue(lastTau=0.2, DataB=DataB)
-            DataB.Wright({'motorM': self.ms.motorM.Getposition()},
-                         inExsist=True)
-        self.ms.Stop('M')
-        # print(i)
-        self.ms.motorM.FogotMotion()
-        self.ms.Start('M')
-        x0 = self.ms.motorM.Getposition(analitic=True) + 1
-        # print(x0)
-        asyncio.run(self.ms.motorM.MoveTo(x0 + 1.5))
-        data = DataB.data.copy()
-        # print(data)
-        # print(errorFun(data, a, b, x0))
-        # DataBase.Clear(-i)
-        print("SetH_podgon", np.array([a, b, x0]))
-        resalt = optimize.fmin(lambda x: errorFun(data, x[0], x[1], x[2]),
-                               np.array([a, b, x0]),
-                               disp=False)  # errorFun(data, x[0], x[1], x[2])
-        a = resalt[0]
-        b = resalt[1]
-        x0 = resalt[2]
-        print('podgon', 'a=', a, '  b=', b, '  x0=', x0)
-        # data['time'] = data['time'] - data['time'][0]
-        data['fit'] = data['motorM'].apply(get_f(a, b, x0))
-        if not quiet:
-            dp = PlotDisplayer(mainParam='motorM',
-                               pl1=data[['motorM', 'error']],
-                               pl2=data[['motorM', 'tension', 'fit']])
-            dp.Show()
-        return x0, a, b
-
-    def SetH(self,
-             xStart=11.5,
-             xFin=9.5,
-             v=0.05,
-             quiet=True,
-             a=4.5,
-             b=50,
-             x0=10.7):
-        def get_f(a, b, x0):
-            def f(x):
-                if x < x0:
-                    return a * (x - x0)**2 + b
-                else:
-                    return b
-
-            return f
-
-        def errorFun(data_loc, a, b, x0):
-            f = get_f(a, b, x0)
-            data_loc['error'] = (data_loc['motorM'].apply(f) -
-                                 data_loc['tension'])**2
-            return sum(data_loc['error'])
-
-        i = 0
-        DataB = DataBase()
-        asyncio.run(self.ms.motorM.MoveTo(xStart, 1, 1))
-        asyncio.run(self.ms.motorM.MoveTo(xFin, v, 1))
-        while self.ms.motorM.IsInMotion():
-            i += 1
-            self.tg.ReadValue(DataB=DataB)
-            DataB.Wright({'motorM': self.ms.motorM.Getposition()},
-                         inExsist=True)
-        asyncio.run(self.ms.motorM.MoveTo(xStart, v, 1))
-        while self.ms.motorM.IsInMotion():
-            i += 1
-            self.tg.ReadValue(DataB=DataB)
-            DataB.Wright({'motorM': self.ms.motorM.Getposition()},
-                         inExsist=True)
-        data = DataB.data.copy()
-        # DataBase.Clear(-i)
-
-        resalt = optimize.fmin(lambda x: errorFun(data, x[0], x[1], x[2]),
-                               np.array([a, b, x0]),
-                               disp=False)
-        a = resalt[0]
-        b = resalt[1]
-        x0 = resalt[2]
-        print('podgon', 'a=', a, '  b=', b, '  x0=', x0)
-        # data['time'] = data['time'] - data['time'][0]
-        data['fit'] = data['motorM'].apply(get_f(a, b, x0))
-        if not quiet:
-            dp = PlotDisplayer(mainParam='motorM',
-                               pl1=data[['motorM', 'error']],
-                               pl2=data[['motorM', 'tension', 'fit']])
-            dp.Show()
-        return x0, a, b, data
 
     def MotorsControlStart(self):
         self.phase = 3
