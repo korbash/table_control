@@ -66,7 +66,6 @@ class Puller():
         self.change_params(from_file=True)
         self.Clear()
         self.MotorsControlStart()
-        self.ms.ResetBeforePull()
         self.tasks = []
         self.tasks.append(asyncio.create_task(self.PulMotorsControl()))
         self.tasks.append(asyncio.create_task(self.FireMove()))
