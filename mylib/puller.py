@@ -88,6 +88,8 @@ class Puller():
         ])
         self.sg = sglad()
 
+
+
     async def Read(self):
         while True:
             param = {}
@@ -107,7 +109,7 @@ class Puller():
             param['vM'], param['aM'] = self.ms.motorM.calcX_V_A()[1:3]
             param['pressure'] = param['tension'] * self.ms.R_x(
                 0)**2 / self.ms.R_x(param['x'])**2
-            param['dv'] = self.dv
+            param['dv'] = self.sl.Sl['dv']
             param['hFire'] = self.ms.hFire
             param['tensionGoal'] = self.Tgoal
             self.sg.NewPoint(param['tension'], param['time'])
@@ -187,59 +189,17 @@ class Puller():
         self.ms.ResetBeforePull()
 
     async def PulMotorsControl(self):
-        self.stFl = False
+        self.stFl = self.sl.BtnFl['end']
+        self.a = self.sl.Sl['a']
         for i in range(5):
-            self.stFl = await self.ms.PulMove(self.v, self.a, self.dv,
-                                              self.stFl)
+            self.stFl = await self.ms.PulMove(self.sl.Sl['v'], self.sl.Sl['a'],
+                                              self.dv, self.stFl)
             if self.stFl:
                 break
 
     async def FireMove(self):
         while True:
             await self.ms.motorM.MoveTo(self.hFire)
-
-    # def PulMotorsControl(self,
-    #                      NewMosH,
-    #                      NewT,
-    #                      upFl=True,
-    #                      stFl=False,
-    #                      dhKof=0.5,
-    #                      Ki=0.1,
-    #                      Kp=0.1,
-    #                      Kd=0.1):
-    #     self.NewT = NewT
-    #     self.Ki = Ki
-    #     self.Kp = Kp
-    #     self.MoH = NewMosH
-    #     self.Read()
-    #     if upFl and not stFl:
-    #         NewMosH += self.ms.x0
-    #     else:
-    #         NewMosH = self.ms.downPos
-    #     t = Time.time()
-    #     tasks = []
-    #     if self.ms.tStart1 <= t < self.ms.tFinish1 and self.phase != 1:  # мотрчик едет с постоянной скоростью
-    #         self.phase = 1
-    #         # print('moving with constant speed')
-    #         self.ms.PulFireMove(aEnd=20, vEnd=dhKof, vFon=self.vFon)
-    #     elif self.ms.tFinish1 <= t < self.ms.tFinish and self.phase != 2:  # моторчик тормозит
-    #         self.phase = 2
-    #         # print('stoping')
-    #         self.ms.PulFireMove(aEnd=20, vEnd=dhKof, vFon=self.vFon)
-    #     elif t >= self.ms.tFinish:  # моторчик закончил движение
-    #         self.phase = 3
-    #         if self.sg.level is not None:
-    #             self.dv = self.obrSvas(NewT, Ki, Kp, Kd)
-    #         self.stFl = self.ms.PulMove(self.v, self.a, self.dv, stFl)
-    #         self.sg.New_tact(self.ms.tFinish)
-    #         self.vFon = self.ms.VforFireMove(NewMosH)
-    #         # print(self.vFon, NewMosH, NewMosH - self.ms.motorM.Getposition())
-    #         if self.stFl:
-    #             self.ms.motorM.MoveTo(self.ms.downPos)
-    #             return -1
-    #         # print('starting')
-    #         self.ms.PulFireMove(aEnd=20, vEnd=dhKof, vFon=self.vFon)
-    #     return 0
 
     def Test(self):
         print('tg test:')
