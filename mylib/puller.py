@@ -111,7 +111,7 @@ class Puller():
             param['vM'], param['aM'] = self.ms.motorM.calcX_V_A()[1:3]
             param['pressure'] = param['tension'] * self.ms.R_x(
                 0)**2 / self.ms.R_x(param['x'])**2
-            param['dv'] = self.sl.Sl['dv']
+            param['dv'] = self.dv
             param['hFire'] = self.ms.hFire
             param['tensionGoal'] = self.Tgoal
             self.sg.NewPoint(param['tension'], param['time'])
