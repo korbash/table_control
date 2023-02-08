@@ -6,6 +6,7 @@ from scipy import optimize
 from mylib import *
 from .sacred_logger import ex, save_data
 from pathlib import Path
+import tomli
 # переделать стоп button
 main_path = Path(__file__).parents[1]
 
@@ -37,80 +38,88 @@ class Puller():
         self.tg = ReadingDevise(tg, 'tension', weightCoef=-2.078990076470489)
         Time.sleep(0.001)
         self.pm = ReadingDevise(pm, 'power', weightCoef=1000)
-        self.ms = MotorSystem(simulate=simulate, simulator=self.sim, blocking=blocking)
-        self.pidI = 0
+        self.ms = MotorSystem(simulate=simulate,
+                              simulator=self.sim,
+                              blocking=blocking)
         self.trueKmas = np.array([])
-        self.Clear()
-        self.v = 5
-        self.a = 9
-        self.dv = 0
         self.times = np.array([])
         self.trueKmasGl = np.array([])
-        self.Tgoal = 0
-
-        self.VdifRec = 0
 
         self.sg = sglad()  #sglad(0.08, 0.2)
-        self.MotorsControlStart()
         '''self.Slider = {}
         self.slidersBtn = {}'''
+
+    def change_params(self, from_file: bool = False, **params):
+        if from_file:
+            with open('params.toml') as f:
+                params = tomli.load(f)
+        for k, v in params.items():
+            setattr(self, k, v)
 
     def __del__(self):
         # del self.ms
         del self.pm
         del self.tg
 
+    async def __aenter__(self):
+        self.change_params(from_file=True)
+        self.Clear()
+        self.MotorsControlStart()
+        self.tasks = []
+        self.tasks.append(asyncio.create_task(self.PulMotorsControl()))
+        self.tasks.append(asyncio.create_task(self.FireMove()))
+        self.tasks.append(asyncio.create_task(self.Read))
+
+    async def __aexit__(self, *params):
+        await self.task[0]
+        for task in self.tasks:
+            task.cancel()
+
     def Save(self):
         save_data(self.data, name='pull_resalts.csv')
         ex.run()
         ex.add_artifact(str(main_path / 'data' / 'pull_resalts.csv'))
-        # Save(self.data, name='crude.csv', dirSubName='main_data\\DATE')
-        # Save(pd.DataFrame({
-        #     'time': self.times,
-        #     'kof': self.trueKmas,
-        #     'sglKof': self.trueKmasGl,
-        # }),
-        #      name='odrKof.csv',
-        #      dirSubName='main_data\\DATE')
 
     def Clear(self):
         self.data = pd.DataFrame(columns=[
             'time', 'tension', 'power', 'motorL', 'motorR', 'motorM', 'dt',
-            'x', 'vL', 'vR', 'vM', 'VdifRec', 'tensionWgl', 'tensionEXPgl', 'dv',
-            'tensionGoal','kP','kI','dL', 'Le'
+            'x', 'vL', 'vR', 'vM', 'VdifRec', 'tensionWgl', 'tensionEXPgl',
+            'dv', 'tensionGoal', 'kP', 'kI', 'dL', 'Le'
         ])
         self.sg = sglad()
 
-    def Read(self, motoL=True, motoR=True, motoM=True):
-        param = {}
-        tSt = Time.time()
-        param['time'] = tSt
-        param['motorL'] = self.ms.motorL.Getposition()
-        param['motorR'] = self.ms.motorR.Getposition()
-        param['motorM'] = self.ms.motorM.Getposition()
-        param['power'] = self.pm.ReadValue()
-        param['tension'] = self.tg.ReadValue()
-        tFn = Time.time()
-        param['dt'] = tFn - tSt
-        param['x'], param['L'] = self.ms.calcX_L()
-        param['Le'] = self.ms.funL_x(param['x'])
-        param['vL'], param['aL'] = self.ms.motorL.calcX_V_A()[1:3]
-        param['vR'], param['aR'] = self.ms.motorR.calcX_V_A()[1:3]
-        param['vM'], param['aM'] = self.ms.motorM.calcX_V_A()[1:3]
-        param['pressure'] = param['tension'] * self.ms.R_x(0)**2 / self.ms.R_x(
-            param['x'])**2
-        param['dv'] = self.dv
-        param['hFire'] = self.ms.hFire
-        param['tensionGoal'] = self.Tgoal
-        self.sg.NewPoint(param['tension'], param['time'])
-        l = len(self.data)
-        self.data.loc[l] = param
-        if self.sg.mean is None: self.wi = l
-        else:
-            while self.data.loc[self.wi, 'time'] <= self.sg.t:
-                self.wi += 1
-                self.data.loc[self.wi, 'tensionWgl'] = self.sg.mean
-                self.data.loc[self.wi, 'tensionEXPgl'] = self.sg.level
+    async def Read(self):
+        while True:
+            param = {}
+            tSt = Time.time()
+            param['time'] = tSt
+            param['motorL'] = self.ms.motorL.Getposition()
+            param['motorR'] = self.ms.motorR.Getposition()
+            param['motorM'] = self.ms.motorM.Getposition()
+            param['power'] = self.pm.ReadValue()
+            param['tension'] = self.tg.ReadValue()
+            tFn = Time.time()
+            param['dt'] = tFn - tSt
+            param['x'], param['L'] = self.ms.calcX_L()
+            param['Le'] = self.ms.funL_x(param['x'])
+            param['vL'], param['aL'] = self.ms.motorL.calcX_V_A()[1:3]
+            param['vR'], param['aR'] = self.ms.motorR.calcX_V_A()[1:3]
+            param['vM'], param['aM'] = self.ms.motorM.calcX_V_A()[1:3]
+            param['pressure'] = param['tension'] * self.ms.R_x(
+                0)**2 / self.ms.R_x(param['x'])**2
+            param['dv'] = self.dv
+            param['hFire'] = self.ms.hFire
+            param['tensionGoal'] = self.Tgoal
+            self.sg.NewPoint(param['tension'], param['time'])
+            l = len(self.data)
+            self.data.loc[l] = param
+            if self.sg.mean is None: self.wi = l
+            else:
+                while self.data.loc[self.wi, 'time'] <= self.sg.t:
+                    self.wi += 1
+                    self.data.loc[self.wi, 'tensionWgl'] = self.sg.mean
+                    self.data.loc[self.wi, 'tensionEXPgl'] = self.sg.level
+            asyncio.sleep(0.3)
 
     def Tprog(self, tau=0):
         return self.Ttrend * tau + self.data.loc[len(self.data) - 1,
@@ -152,9 +161,8 @@ class Puller():
             if not quiet:
                 print('w= ', w, ', dw= ', w - wide, ', dx=  ', dx)
             asyncio.run(
-                self.ms.motorR.MoveTo(self.ms.motorR.Getposition(analitic=True) -
-                                  dx,
-                                  a=1))
+                self.ms.motorR.MoveTo(
+                    self.ms.motorR.Getposition(analitic=True) - dx, a=1))
             while self.ms.motorR.IsInMotion():
                 pass
             Time.sleep(0.1)
@@ -178,48 +186,59 @@ class Puller():
         self.stFl = False
         self.ms.ResetBeforePull()
 
-    def PulMotorsControl(self,
-                         NewMosH,
-                         NewT,
-                         upFl=True,
-                         stFl=False,
-                         dhKof=0.5,
-                         Ki=0.1,
-                         Kp=0.1,
-                         Kd=0.1):
-        self.NewT = NewT
-        self.Ki = Ki
-        self.Kp = Kp
-        self.MoH = NewMosH
-        self.Read()
-        if upFl and not stFl:
-            NewMosH += self.ms.x0
-        else:
-            NewMosH = self.ms.downPos
-        t = Time.time()
-        tasks = []
-        if self.ms.tStart1 <= t < self.ms.tFinish1 and self.phase != 1:  # мотрчик едет с постоянной скоростью
-            self.phase = 1
-            # print('moving with constant speed')
-            self.ms.PulFireMove(aEnd=20, vEnd=dhKof, vFon=self.vFon)
-        elif self.ms.tFinish1 <= t < self.ms.tFinish and self.phase != 2:  # моторчик тормозит
-            self.phase = 2
-            # print('stoping')
-            self.ms.PulFireMove(aEnd=20, vEnd=dhKof, vFon=self.vFon)
-        elif t >= self.ms.tFinish:  # моторчик закончил движение
-            self.phase = 3
-            if self.sg.level is not None:
-                self.dv = self.obrSvas(NewT, Ki, Kp, Kd)
-            self.stFl = self.ms.PulMove(self.v, self.a, self.dv, stFl)
-            self.sg.New_tact(self.ms.tFinish)
-            self.vFon = self.ms.VforFireMove(NewMosH)
-            # print(self.vFon, NewMosH, NewMosH - self.ms.motorM.Getposition())
+    async def PulMotorsControl(self):
+        for i in range(5):
+            self.stFl = await self.ms.PulMove(self.v, self.a, self.dv,
+                                              self.stFl)
             if self.stFl:
-                self.ms.motorM.MoveTo(self.ms.downPos)
-                return -1
-            # print('starting')
-            self.ms.PulFireMove(aEnd=20, vEnd=dhKof, vFon=self.vFon)
-        return 0
+                break
+
+    async def FireMove(self):
+        while True:
+            await self.ms.motorM.MoveTo(self.hFire)
+
+    # def PulMotorsControl(self,
+    #                      NewMosH,
+    #                      NewT,
+    #                      upFl=True,
+    #                      stFl=False,
+    #                      dhKof=0.5,
+    #                      Ki=0.1,
+    #                      Kp=0.1,
+    #                      Kd=0.1):
+    #     self.NewT = NewT
+    #     self.Ki = Ki
+    #     self.Kp = Kp
+    #     self.MoH = NewMosH
+    #     self.Read()
+    #     if upFl and not stFl:
+    #         NewMosH += self.ms.x0
+    #     else:
+    #         NewMosH = self.ms.downPos
+    #     t = Time.time()
+    #     tasks = []
+    #     if self.ms.tStart1 <= t < self.ms.tFinish1 and self.phase != 1:  # мотрчик едет с постоянной скоростью
+    #         self.phase = 1
+    #         # print('moving with constant speed')
+    #         self.ms.PulFireMove(aEnd=20, vEnd=dhKof, vFon=self.vFon)
+    #     elif self.ms.tFinish1 <= t < self.ms.tFinish and self.phase != 2:  # моторчик тормозит
+    #         self.phase = 2
+    #         # print('stoping')
+    #         self.ms.PulFireMove(aEnd=20, vEnd=dhKof, vFon=self.vFon)
+    #     elif t >= self.ms.tFinish:  # моторчик закончил движение
+    #         self.phase = 3
+    #         if self.sg.level is not None:
+    #             self.dv = self.obrSvas(NewT, Ki, Kp, Kd)
+    #         self.stFl = self.ms.PulMove(self.v, self.a, self.dv, stFl)
+    #         self.sg.New_tact(self.ms.tFinish)
+    #         self.vFon = self.ms.VforFireMove(NewMosH)
+    #         # print(self.vFon, NewMosH, NewMosH - self.ms.motorM.Getposition())
+    #         if self.stFl:
+    #             self.ms.motorM.MoveTo(self.ms.downPos)
+    #             return -1
+    #         # print('starting')
+    #         self.ms.PulFireMove(aEnd=20, vEnd=dhKof, vFon=self.vFon)
+    #     return 0
 
     def Test(self):
         print('tg test:')

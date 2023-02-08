@@ -504,7 +504,7 @@ class MotorSystem():
             l = self.l0
         return self.motorL.position_max + self.motorR.position_max - xL - xR + l
 
-    def MoveToStart(self, L=None, dL=0, v=-1, a=-1, zapas=3):
+    async def MoveToStart(self, L=None, dL=0, v=-1, a=-1, zapas=3):
         if (v == -1):
             v = self.v_norm
         if (a == -1):
@@ -512,8 +512,13 @@ class MotorSystem():
         if L == None:
             L = self.L_x(0) / 2 + zapas
         self.lStart = L
-        self.motorL.MoveTo(self.motorL.position_max - L - dL, v, a)
+        t1 = asyncio.create_task(
+            self.motorL.MoveTo(self.motorL.position_max - L - dL, v, a)
+        )
+        t2 = asyncio.create_task(
         self.motorR.MoveTo(self.motorR.position_max - L + dL, v, a)
+        )
+        await asyncio.gather(t1, t2)
 
     async def Move(self, L, v=-1, a=-1, vdiff=0, da=0):
         if (v == -1):
