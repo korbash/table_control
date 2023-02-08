@@ -51,7 +51,7 @@ class Puller():
 
     def change_params(self, from_file: bool = False, **params):
         if from_file:
-            with open('params.toml') as f:
+            with open('C:/Users/ariva/projects/table_control/params.toml', 'rb') as f:
                 params = tomli.load(f)
         for k, v in params.items():
             setattr(self, k, v)
@@ -68,10 +68,10 @@ class Puller():
         self.tasks = []
         self.tasks.append(asyncio.create_task(self.PulMotorsControl()))
         self.tasks.append(asyncio.create_task(self.FireMove()))
-        self.tasks.append(asyncio.create_task(self.Read))
+        self.tasks.append(asyncio.create_task(self.Read()))
 
     async def __aexit__(self, *params):
-        await self.task[0]
+        await self.tasks[0]
         for task in self.tasks:
             task.cancel()
 
