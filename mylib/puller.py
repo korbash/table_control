@@ -89,8 +89,6 @@ class Puller():
         ])
         self.sg = sglad()
 
-
-
     async def Read(self):
         while True:
             param = {}
@@ -112,7 +110,7 @@ class Puller():
                 0)**2 / self.ms.R_x(param['x'])**2
             param['dv'] = self.dv
             param['hFire'] = self.ms.hFire
-            param['tensionGoal'] = self.Tgoal
+            param['tensionGoal'] = self.NewT
             self.sg.NewPoint(param['tension'], param['time'])
             l = len(self.data)
             self.data.loc[l] = param
@@ -192,9 +190,18 @@ class Puller():
     async def PulMotorsControl(self):
         self.stFl = self.sl.BtnFl['end']
         self.a = self.sl.Sl['a']
-        for i in range(5):
-            self.stFl = await self.ms.PulMove(self.sl.Sl['v'], self.sl.Sl['a'],
-                                              self.dv, self.stFl)
+        self.v = self.sl.Sl['v']
+        self.NewT = self.sl.Sl['T0']
+        Ki = self.sl.Sl['Ki']
+        Kp = self.sl.Sl['Kp']
+        Kd = self.sl.Sl['Kd']
+        if self.sg.level is not None:
+            self.dv = self.obrSvas(self.NewT, Ki, Kp, Kd)
+        else:
+            self.dv = 0
+        for i in range(10):
+            self.stFl = await self.ms.PulMove(self.v, self.a, self.dv,
+                                              self.stFl)
             if self.stFl:
                 break
 
