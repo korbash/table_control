@@ -592,7 +592,7 @@ class MotorSystem():
         self.tFinish = 0
         self.tact = 0
         self.downPos = self.motorM.position_min + 10
-        self.motorM.MoveTo(self.downPos)
+        # self.motorM.MoveTo(self.downPos)
         self.hFire = self.motorM.Getposition()
 
     async def LRoscillation():
