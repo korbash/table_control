@@ -189,12 +189,12 @@ class Puller():
 
     async def PulMotorsControl(self):
         self.stFl = self.sl.BtnFl['end']
-        self.a = self.sl.Sl['a']
-        self.v = self.sl.Sl['v']
-        self.NewT = self.sl.Sl['T0']
-        Ki = self.sl.Sl['Ki']
-        Kp = self.sl.Sl['Kp']
-        Kd = self.sl.Sl['Kd']
+        self.a = self.sl.Sl['a']()
+        self.v = self.sl.Sl['v']()
+        self.NewT = self.sl.Sl['T0']()
+        Ki = self.sl.Sl['Ki']()
+        Kp = self.sl.Sl['Kp']()
+        Kd = self.sl.Sl['Kd']()
         if self.sg.level is not None:
             self.dv = self.obrSvas(self.NewT, Ki, Kp, Kd)
         else:
