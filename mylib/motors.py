@@ -183,12 +183,12 @@ class Motor():
         return flag
 
     async def MoveTo(self, x, v=v_norm, a=a_norm):
-        await self.WaitWhileInMotion(waitForTrue=True)
+        await self.WaitWhileInMotion(waitForTrue=False)
         x0 = self.Getposition(memory=False, motorNotMove=True)
         v = self.chekV_A(v, a, x - x0)
         self.Set_velocity(v, a)
         flag = self.Move_to_iner(x)
-        await self.WaitWhileInMotion(waitForTrue=False)
+        await self.WaitWhileInMotion()
         return flag
 
     def Test(self):
@@ -561,6 +561,9 @@ class MotorSystem():
             flag += self.motorR.Set_velocity(v=v * coffB, a=a * coffB - da)
             flag += self.motorR.Move_to_iner(xR - sB)
             flag += self.motorL.Move_to_iner(xL + sL)
+        t1 = asyncio.create_task(self.motorL.WaitWhileInMotion())
+        t2 = asyncio.create_task(self.motorR.WaitWhileInMotion())
+        await asyncio.wait([t1, t2])
 
         if (flag < 0):
             return -1
@@ -592,7 +595,7 @@ class MotorSystem():
         self.tFinish = 0
         self.tact = 0
         self.downPos = self.motorM.position_min + 10
-        self.motorM.MoveTo(self.downPos)
+        # self.motorM.MoveTo(self.downPos)
         self.hFire = self.motorM.Getposition()
 
     async def LRoscillation():
@@ -613,6 +616,7 @@ class MotorSystem():
             # print(-dLnew, v, a, alf, dt, "  case1")
 
         t = v / a
+        print('dLnew:', dLnew, 'Xnew:', Xnew, ':', dLnew)
         dLnew += v * t / 2 * np.sign(dLnew)
         if Xnew < self.xMax and not stFl:
             await self.Move(dLnew, v, a, alf * v, dt)
