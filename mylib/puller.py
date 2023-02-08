@@ -33,11 +33,11 @@ class Puller():
             self.sim = None
             tg = dr.tensionGauge()
             Time.sleep(0.001)
-            pm = dr.powerMeter()
+            # pm = dr.powerMeter()
             Time.sleep(0.001)
         self.tg = ReadingDevise(tg, 'tension', weightCoef=-2.078990076470489)
         Time.sleep(0.001)
-        self.pm = ReadingDevise(pm, 'power', weightCoef=1000)
+        # self.pm = ReadingDevise(pm, 'power', weightCoef=1000)
         self.ms = MotorSystem(simulate=simulate,
                               simulator=self.sim,
                               blocking=blocking)
