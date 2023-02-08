@@ -15,6 +15,7 @@ from . import driwers as dr
 
 
 def caunter(r0=62.5, Ltorch=0.6, lw=30, rw=15, dr=1, thetasdiv=1):
+
     def integr(y, x):
         inte = np.hstack((0, cumtrapz(y, x)))
         return inte
@@ -165,7 +166,7 @@ class Motor():
             return isin
         else:
             return self.mot.is_in_motion
-        
+
     async def WaitWhileInMotion(self, waitForTrue=True):
         while not self.IsInMotion() and waitForTrue:
             await asyncio.sleep(0)
@@ -346,7 +347,8 @@ class MotorSystem():
 
         self.motorL = Motor(motL, "motor L", blocking=blocking)
         self.motorR = Motor(motR, "motor R", blocking=blocking)
-        self.motorM = Motor(motM, "motor M", blocking=blocking)  # начальная позиция 60
+        self.motorM = Motor(motM, "motor M",
+                            blocking=blocking)  # начальная позиция 60
 
         self.a_norm = self.motorL.a_norm
         self.v_norm = self.motorL.v_norm
@@ -373,7 +375,11 @@ class MotorSystem():
             description="Forgot motion")
         self.forgotButton.on_click(self.ForgotMotion)
 
-        self.funL_x, self.funR_x, self.xMax = caunter(lw=23, rw=10, Ltorch=1, thetasdiv=1)
+        self.funL_x, self.funR_x, self.xMax = caunter(lw=23,
+                                                      rw=10,
+                                                      Ltorch=1,
+                                                      thetasdiv=1)
+
         def f(fun, xMax, x):
 
             if x < 0:
@@ -513,12 +519,10 @@ class MotorSystem():
             L = self.L_x(0) / 2 + zapas
         self.lStart = L
         t1 = asyncio.create_task(
-            self.motorL.MoveTo(self.motorL.position_max - L - dL, v, a)
-        )
+            self.motorL.MoveTo(self.motorL.position_max - L - dL, v, a))
         t2 = asyncio.create_task(
-        self.motorR.MoveTo(self.motorR.position_max - L + dL, v, a)
-        )
-        await asyncio.wait([t1,t2])
+            self.motorR.MoveTo(self.motorR.position_max - L + dL, v, a))
+        await asyncio.wait([t1, t2])
 
     async def Move(self, L, v=-1, a=-1, vdiff=0, da=0):
         if (v == -1):
@@ -560,7 +564,7 @@ class MotorSystem():
 
         if (flag < 0):
             return -1
-        
+
         while self.IsInMotion():
             await asyncio.sleep(0)
         return 0
@@ -589,13 +593,11 @@ class MotorSystem():
         self.tact = 0
         self.downPos = self.motorM.position_min + 10
         self.motorM.MoveTo(self.downPos)
-        while self.motorM.IsInMotion():
-            pass
         self.hFire = self.motorM.Getposition()
 
     async def LRoscillation():
         pass
-    
+
     async def PulMove(self, v, a, dv, stFl):
         dt = 0  # рудимент пока похраним
         alf = dv / v
