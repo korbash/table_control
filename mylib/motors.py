@@ -561,8 +561,9 @@ class MotorSystem():
             flag += self.motorR.Set_velocity(v=v * coffB, a=a * coffB - da)
             flag += self.motorR.Move_to_iner(xR - sB)
             flag += self.motorL.Move_to_iner(xL + sL)
-        await self.motorL.WaitWhileInMotion()
-        await self.motorL.WaitWhileInMotion()
+        t1 = asyncio.create_task(self.motorL.WaitWhileInMotion())
+        t2 = asyncio.create_task(self.motorR.WaitWhileInMotion())
+        await asyncio.wait([t1, t2])
 
         if (flag < 0):
             return -1
