@@ -65,8 +65,9 @@ class Motor():
     a_norm = 5
     v_max = 30
     a_max = 30
+    dp_thr = 0.025
 
-    def __init__(self, mot, motor_name, p_max=99, blocking=False):
+    def __init__(self, mot, motor_name, p_max=99, blocking=False, dp_thr=dp_thr):
 
         self.mot = mot
         self.name = motor_name
@@ -77,6 +78,7 @@ class Motor():
         self.points = np.array([])
         self.startsTime = np.array([Time.time()])
         self.finX = np.array([0, 0])
+        self.dp_thr = dp_thr
 
         # self.acceleration_upper_limit=30
         # self.velocity_upper_limit=30
@@ -179,7 +181,7 @@ class Motor():
         v = self.chekV_A(v, a, dp)
         self.Set_velocity(v, a)
         flag = self.Move_to_iner(p + dp)
-        await self.WaitWhileInMotion(waitForTrue=np.abs(dp) > .025)
+        await self.WaitWhileInMotion(waitForTrue=np.abs(dp) > self.dp_thr)
         return flag
 
     async def MoveTo(self, x, v=v_norm, a=a_norm):
@@ -188,7 +190,7 @@ class Motor():
         v = self.chekV_A(v, a, x - x0)
         self.Set_velocity(v, a)
         flag = self.Move_to_iner(x)
-        await self.WaitWhileInMotion(waitForTrue=np.abs(self.Getposition() - x) > .025)
+        await self.WaitWhileInMotion(waitForTrue=np.abs(self.Getposition() - x) > self.dp_thr)
         return flag
 
     def Test(self):
