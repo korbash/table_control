@@ -518,7 +518,7 @@ class MotorSystem():
         t2 = asyncio.create_task(
         self.motorR.MoveTo(self.motorR.position_max - L + dL, v, a)
         )
-        await asyncio.gather(t1, t2)
+        await asyncio.wait([t1,t2])
 
     async def Move(self, L, v=-1, a=-1, vdiff=0, da=0):
         if (v == -1):

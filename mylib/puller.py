@@ -119,7 +119,7 @@ class Puller():
                     self.wi += 1
                     self.data.loc[self.wi, 'tensionWgl'] = self.sg.mean
                     self.data.loc[self.wi, 'tensionEXPgl'] = self.sg.level
-            asyncio.sleep(0.3)
+            await asyncio.sleep(0.3)
 
     def Tprog(self, tau=0):
         return self.Ttrend * tau + self.data.loc[len(self.data) - 1,
@@ -187,6 +187,7 @@ class Puller():
         self.ms.ResetBeforePull()
 
     async def PulMotorsControl(self):
+        self.stFl = False
         for i in range(5):
             self.stFl = await self.ms.PulMove(self.v, self.a, self.dv,
                                               self.stFl)
