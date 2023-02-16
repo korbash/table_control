@@ -111,13 +111,13 @@ class Slider3():
         self.TtBtn[name].clear_output(wait=True)
 
     def NewSl(self, name, min=0, max=1, step=0.1, value=0):
-        # self.slBtn[name] = widgets.FloatSlider(min=min,
-        #                                        max=max,
-        #                                        step=step,
-        #                                        value=value,
-        #                                        description=name,
-        #                                        orientation='vertical')
-        widget = widgets.IntSlider()
+        widget = widgets.FloatSlider(min=min,
+                                     max=max,
+                                     step=step,
+                                     value=value,
+                                     description=name,
+                                     orientation='vertical')
+        # widget = widgets.IntSlider()
         self.slBtn[name] = widget
         self.Sl[name] = widget.value
 
