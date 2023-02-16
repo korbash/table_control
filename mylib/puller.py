@@ -94,7 +94,7 @@ class Puller():
 
     async def plotter(self):
         while True:
-            # print('plotted')
+            print('plotted')
             self.pd.Apdate(for_all=self.data)
             push_notebook()
             await asyncio.sleep(0.3)
@@ -199,7 +199,7 @@ class Puller():
 
     async def PulMotorsControl(self):
         for i in range(10):
-            self.stFl = self.sl.BtnFl['end']
+            # self.stFl = self.sl.BtnFl['end']
             self.a = self.sl.Sl['a']
             self.v = self.sl.Sl['v']
             self.NewT = self.sl.Sl['T0']
