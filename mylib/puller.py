@@ -45,7 +45,7 @@ class Puller():
         self.trueKmas = np.array([])
         self.times = np.array([])
         self.trueKmasGl = np.array([])
-
+        self.Clear()
         self.sg = sglad()  #sglad(0.08, 0.2)
         '''self.Slider = {}
         self.slidersBtn = {}'''
