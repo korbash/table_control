@@ -31,7 +31,7 @@ class director:
 
     async def plotter(self):
         while True:
-            print('plotted')
+            # print('plotted')
             self.pd.Apdate(for_all=self.data)
             push_notebook()
             await asyncio.sleep(0.3)
@@ -42,7 +42,7 @@ class director:
 
     async def reader(self):
         while True:
-            print('readed')
+            # print('readed')
             new = pandas.DataFrame([{
                 'time': time.time() - self.t0,
                 'power': random.random()

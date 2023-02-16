@@ -7,6 +7,7 @@ from IPython.display import display
 from bokeh.io import show
 from bokeh.plotting import figure
 from bokeh.layouts import layout
+import asyncio
 
 
 class PlotDisplayer():
@@ -167,7 +168,15 @@ class Slider2():
         self.TtBtn = {}
         self.TtPogr = {}
 
-    
+    async def __aenter__(self):
+        self.tasks = []
+        for sl_name in self.Sl:
+            self.tasks.append(asyncio.create_task(self.track_change(sl_name)))
+
+    async def __aexit__(self, *params):
+        for task in self.tasks:
+            task.cancel()
+
     def NewTt(self, name, pogr=4):
         self.TtBtn[name] = widgets.Output(layout={'border': '1px solid black'})
         self.TtPogr[name] = pogr
@@ -179,13 +188,14 @@ class Slider2():
         self.TtBtn[name].clear_output(wait=True)
 
     def NewSl(self, name, min=0, max=1, step=0.1, value=0):
-        self.slBtn[name] = widgets.FloatSlider(min=min,
-                                               max=max,
-                                               step=step,
-                                               value=value,
-                                               description=name,
-                                               orientation='vertical')
-        self.Sl[name] = lambda: self.slBtn[name].value
+        # self.slBtn[name] = widgets.FloatSlider(min=min,
+        #                                        max=max,
+        #                                        step=step,
+        #                                        value=value,
+        #                                        description=name,
+        #                                        orientation='vertical')
+        self.slBtn[name] = widgets.IntSlider()
+        self.Sl[name] = self.slBtn[name].value
 
     def NewBtn(self, name, *description):
         self.BtnBtn[name] = widgets.Button(description=description[0])
@@ -225,6 +235,100 @@ class Slider2():
         # print(i,description,description[i])
         self.BtnBtn[name].description = description[i]
 
+    async def track_change(self, sl_name):
+
+        def wait_for_change(widget, value):
+            future = asyncio.Future()
+
+            def getvalue(change):
+                # make the new value available
+                future.set_result(change.new)
+                widget.unobserve(getvalue, value)
+
+            widget.observe(getvalue, value)
+            return future
+
+        while True:
+            print(sl_name, 'start')
+            widget = self.slBtn[sl_name]
+            val = await wait_for_change(widget, 'value')
+            print(sl_name, val)
+            self.Sl[sl_name]
+
+
+class Slider3():
+
+    def __init__(self):
+        self.Sl = {}
+        self.slBtn = {}
+        self.BtnFl = {}
+        self.BtnBtn = {}
+        self.TtBtn = {}
+        self.TtPogr = {}
+
+    def NewTt(self, name, pogr=4):
+        self.TtBtn[name] = widgets.Output(layout={'border': '1px solid black'})
+        self.TtPogr[name] = pogr
+
+    def ChangeValueTt(self, name, x):
+        with self.TtBtn[name]:
+            print(name + '= ' +
+                  ('{:.' + str(self.TtPogr[name]) + 'f}').format(x))
+        self.TtBtn[name].clear_output(wait=True)
+
+    def NewSl(self, name, min=0, max=1, step=0.1, value=0):
+        # self.slBtn[name] = widgets.FloatSlider(min=min,
+        #                                        max=max,
+        #                                        step=step,
+        #                                        value=value,
+        #                                        description=name,
+        #                                        orientation='vertical')
+        widget = widgets.IntSlider()
+        self.slBtn[name] = widget
+        self.Sl[name] = widget.value
+
+        def on_value_change(change):
+            self.Sl[name] = change['new']
+
+        widget.observe(on_value_change, names='value')
+
+    def NewBtn(self, name, *description):
+        self.BtnBtn[name] = widgets.Button(description=description[0])
+        self.BtnFl[name] = 0
+        self.BtnBtn[name].on_click(
+            lambda x: self.changeflag(name, *description))
+
+    def Display(self, prin=True):
+        lst0 = list(self.TtBtn.values())
+        lst1 = list(self.slBtn.values())
+        lst2 = list(self.BtnBtn.values())
+        l = max(len(lst0), len(lst1), len(lst2))
+        grid = ipywidgets.GridspecLayout(3, l)
+        i = 0
+        for gr in lst0:
+            grid[0, i] = gr
+            i += 1
+        i = 0
+        for gr in lst1:
+            grid[1, i] = gr
+            i += 1
+        i = 0
+        for gr in lst2:
+            grid[2, i] = gr
+            i += 1
+        if prin:
+            b0 = ipywidgets.Box(lst0)
+            b1 = ipywidgets.Box(lst1)
+            b2 = ipywidgets.Box(lst2)
+            display(ipywidgets.VBox([b0, b1, b2]))
+        # return grid
+
+    def changeflag(self, name, *description):
+        l = len(description)
+        i = (self.BtnFl[name] + 1) % l
+        self.BtnFl[name] = i
+        # print(i,description,description[i])
+        self.BtnBtn[name].description = description[i]
 
 
 class Interactives():
