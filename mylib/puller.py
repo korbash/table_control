@@ -197,12 +197,11 @@ class Puller():
             Kp = self.sl.Sl['Kp']()
             Kd = self.sl.Sl['Kd']()
             print(self.v)
-        if self.sg.level is not None:
-            self.dv = self.obrSvas(self.NewT, Ki, Kp, Kd)
-        else:
-            self.dv = 0
-
-            self.stFl = await self.ms.PulMove(self.v, self.a, self.dv,
+            if self.sg.level is not None:
+                self.dv = self.obrSvas(self.NewT, Ki, Kp, Kd)
+            else:
+                self.dv = 0
+                self.stFl = await self.ms.PulMove(self.v, self.a, self.dv,
                                               self.stFl)
             if self.stFl:
                 break
