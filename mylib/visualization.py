@@ -90,7 +90,7 @@ class ploter():
             line.data_source.data = data
 
 
-class Slider3():
+class Slider():
 
     def __init__(self):
         self.Sl = {}
@@ -123,6 +123,7 @@ class Slider3():
 
         def on_value_change(change):
             self.Sl[name] = change['new']
+            print('value changed on', self.Sl[name])
 
         widget.observe(on_value_change, names='value')
 

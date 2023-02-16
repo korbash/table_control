@@ -197,7 +197,7 @@ class Puller():
             Ki = self.sl.Sl['Ki']
             Kp = self.sl.Sl['Kp']
             Kd = self.sl.Sl['Kd']
-            print(self.v)
+            # print(self.v)
             if self.sg.level is not None:
                 self.dv = self.obrSvas(self.NewT, Ki, Kp, Kd)
             else:
@@ -209,7 +209,7 @@ class Puller():
 
     async def FireMove(self):
         while True:
-            await self.ms.motorM.MoveTo(self.hFire)
+            await self.ms.motorM.MoveTo(self.ms.x0 + self.sl.Sl['molibdenH'])
 
     def Test(self):
         print('tg test:')
