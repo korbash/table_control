@@ -7,6 +7,7 @@ from mylib import *
 from .sacred_logger import ex, save_data
 from pathlib import Path
 import tomli
+from bokeh.io import push_notebook
 # переделать стоп button
 main_path = Path(__file__).parents[1]
 
@@ -67,9 +68,11 @@ class Puller():
         self.Clear()
         self.MotorsControlStart()
         self.tasks = []
+        self.pd.Show()
         self.tasks.append(asyncio.create_task(self.PulMotorsControl()))
         self.tasks.append(asyncio.create_task(self.FireMove()))
         self.tasks.append(asyncio.create_task(self.Read()))
+        self.tasks.append(asyncio.create_task(self.plotter()))
 
     async def __aexit__(self, *params):
         await self.tasks[0]
@@ -88,6 +91,13 @@ class Puller():
             'dv', 'tensionGoal', 'kP', 'kI', 'dL', 'Le'
         ])
         self.sg = sglad()
+
+    async def plotter(self):
+        while True:
+            # print('plotted')
+            self.pd.Apdate(for_all=self.data)
+            push_notebook()
+            await asyncio.sleep(0.3)
 
     async def Read(self):
         while True:
