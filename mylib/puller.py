@@ -188,19 +188,20 @@ class Puller():
         self.ms.ResetBeforePull()
 
     async def PulMotorsControl(self):
-        self.stFl = self.sl.BtnFl['end']
-        self.a = self.sl.Sl['a']()
-        self.v = self.sl.Sl['v']()
-        self.NewT = self.sl.Sl['T0']()
-        Ki = self.sl.Sl['Ki']()
-        Kp = self.sl.Sl['Kp']()
-        Kd = self.sl.Sl['Kd']()
-        print(self.v)
+        for i in range(10):
+            self.stFl = self.sl.BtnFl['end']
+            self.a = self.sl.Sl['a']()
+            self.v = self.sl.Sl['v']()
+            self.NewT = self.sl.Sl['T0']()
+            Ki = self.sl.Sl['Ki']()
+            Kp = self.sl.Sl['Kp']()
+            Kd = self.sl.Sl['Kd']()
+            print(self.v)
         if self.sg.level is not None:
             self.dv = self.obrSvas(self.NewT, Ki, Kp, Kd)
         else:
             self.dv = 0
-        for i in range(10):
+
             self.stFl = await self.ms.PulMove(self.v, self.a, self.dv,
                                               self.stFl)
             if self.stFl:
