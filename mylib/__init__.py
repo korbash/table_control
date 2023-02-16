@@ -1,7 +1,7 @@
-# from . import driwers as dr
+from . import driwers as dr
 from .utilities import *
-from .visualization import PlotDisplayer, Slider3
+from .visualization import PlotDisplayer, Slider
 from .sglad import sglad
-# from .simulator import simulator
-# from .motors import MotorSystem, Motor
-# from .puller import Puller
+from .simulator import simulator
+from .motors import MotorSystem, Motor
+from .puller import Puller
