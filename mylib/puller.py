@@ -200,6 +200,7 @@ class Puller():
     async def PulMotorsControl(self):
         for i in range(10):
             # self.stFl = self.sl.BtnFl['end']
+            self.stFl = self.sl.Sl['end']
             self.a = self.sl.Sl['a']
             self.v = self.sl.Sl['v']
             self.NewT = self.sl.Sl['T0']

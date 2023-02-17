@@ -117,13 +117,12 @@ class Slider():
                                      value=value,
                                      description=name,
                                      orientation='vertical')
-        # widget = widgets.IntSlider()
         self.slBtn[name] = widget
         self.Sl[name] = widget.value
 
         def on_value_change(change):
             self.Sl[name] = change['new']
-            print('value changed on', self.Sl[name])
+            # print('value changed on', self.Sl[name])
 
         widget.observe(on_value_change, names='value')
 
