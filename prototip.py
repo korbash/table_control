@@ -1,4 +1,4 @@
-from mylib import PlotDisplayer, Slider, Time
+from mylib import PlotDisplayer, Slider
 import pandas
 import asyncio
 import math
@@ -20,6 +20,7 @@ class director:
         self.t0 = time.time()
         self.data = pandas.DataFrame([{'time': 0.0, 'power': 0.0}])
         self.pd.Show()
+        self.id = self.sl.Display()
         self.tasks.append(asyncio.create_task(self.read_control()))
         self.tasks.append(asyncio.create_task(self.plotter()))
         self.tasks.append(asyncio.create_task(self.reader()))
@@ -31,7 +32,9 @@ class director:
 
     async def plotter(self):
         while True:
+            self.id.update()
             # print('plotted')
+            print('sl', self.sl.Sl['v'])
             self.pd.Apdate(for_all=self.data)
             push_notebook()
             await asyncio.sleep(0.3)
