@@ -95,7 +95,8 @@ class Puller():
     async def plotter(self):
         while True:
             # print('plotted')
-            self.pd.Apdate(for_all=self.data.iloc[-self.sl.Sl['window'],:])
+            w = int(self.sl.Sl['window'])
+            self.pd.Apdate(for_all=self.data.iloc[-w:])
             push_notebook()
             await asyncio.sleep(0.3)
 
