@@ -27,7 +27,7 @@ class Puller():
     def __init__(self, simulate=False, blocking=False):
         if simulate:
             self.sim = simulator(104, self.kStr,
-                                 -2.078990076470489)  # -0.0075585384235655265
+                                 2.078990076470489)  # -0.0075585384235655265
             tg = self.sim.tg
             pm = self.sim.pm
         else:
@@ -47,6 +47,10 @@ class Puller():
         self.trueKmasGl = np.array([])
         self.Clear()
         self.sg = sglad()  #sglad(0.08, 0.2)
+        self.dts = []
+        self.dts2 = []
+        self.dts3 = []
+        self.dtsm = []
         '''self.Slider = {}
         self.slidersBtn = {}'''
 
@@ -69,8 +73,8 @@ class Puller():
         self.MotorsControlStart()
         self.tasks = []
         self.pd.Show()
-        self.tasks.append(asyncio.create_task(self.PulMotorsControl()))
-        self.tasks.append(asyncio.create_task(self.FireMove()))
+        self.tasks.append(asyncio.create_task(self.PulMotorsControl(), name='motorsLR'))
+        # self.tasks.append(asyncio.create_task(self.FireMove(), name='motorM'))
         self.tasks.append(asyncio.create_task(self.Read()))
         self.tasks.append(asyncio.create_task(self.plotter()))
 
@@ -78,6 +82,8 @@ class Puller():
         await self.tasks[0]
         for task in self.tasks:
             task.cancel()
+        print(f'mean reading time = {np.mean(self.dts)}')
+        print(f'max reading time = {np.max(self.dts)}')
 
     def Save(self):
         save_data(self.data, name='pull_resalts.csv')
@@ -98,40 +104,62 @@ class Puller():
             w = int(self.sl.Sl['window'])
             self.pd.Apdate(for_all=self.data.iloc[-w:])
             push_notebook()
-            await asyncio.sleep(0.3)
+            await asyncio.sleep(2.5)
 
     async def Read(self):
+        print('aaaa')
         while True:
             param = {}
             tSt = Time.time()
             param['time'] = tSt
+            await asyncio.sleep(0)
             param['motorL'] = self.ms.motorL.Getposition()
+            await asyncio.sleep(0)
             param['motorR'] = self.ms.motorR.Getposition()
+            await asyncio.sleep(0)
             param['motorM'] = self.ms.motorM.Getposition()
+            await asyncio.sleep(0)
             param['power'] = self.pm.ReadValue()
+            await asyncio.sleep(0)
             param['tension'] = self.tg.ReadValue()
+            await asyncio.sleep(0)
             tFn = Time.time()
             param['dt'] = tFn - tSt
+            await asyncio.sleep(0)
             param['x'], param['L'] = self.ms.calcX_L()
+            await asyncio.sleep(0)
             param['Le'] = self.ms.funL_x(param['x'])
+            await asyncio.sleep(0)
             param['vL'], param['aL'] = self.ms.motorL.calcX_V_A()[1:3]
+            await asyncio.sleep(0)
             param['vR'], param['aR'] = self.ms.motorR.calcX_V_A()[1:3]
+            await asyncio.sleep(0)
             param['vM'], param['aM'] = self.ms.motorM.calcX_V_A()[1:3]
-            param['pressure'] = param['tension'] * self.ms.R_x(
-                0)**2 / self.ms.R_x(param['x'])**2
+            await asyncio.sleep(0)
+            param['pressure'] = param['tension'] * self.ms.R_x(0)**2 / self.ms.R_x(param['x'])**2
+            await asyncio.sleep(0)
             param['dv'] = self.dv
             param['hFire'] = self.ms.hFire
+            await asyncio.sleep(0)
+            tFn15 = Time.time()
             param['tensionGoal'] = self.NewT
+            tFn17 = Time.time()
             self.sg.NewPoint(param['tension'], param['time'])
             l = len(self.data)
             self.data.loc[l] = param
-            if self.sg.mean is None: self.wi = l
+            if self.sg.mean is None: 
+                self.wi = l
             else:
                 while self.data.loc[self.wi, 'time'] <= self.sg.t:
                     self.wi += 1
                     self.data.loc[self.wi, 'tensionWgl'] = self.sg.mean
                     self.data.loc[self.wi, 'tensionEXPgl'] = self.sg.level
-            await asyncio.sleep(0.3)
+            tFn2 = Time.time()
+            await asyncio.sleep(.5)
+            # print(f'dt={tFn2 - tSt}')
+            self.dts.append(tFn2 - tSt)
+            self.dts2.append(tFn2 - tFn15)
+            self.dts3.append(tFn2 - tFn17)
 
     def Tprog(self, tau=0):
         return self.Ttrend * tau + self.data.loc[len(self.data) - 1,
@@ -199,7 +227,8 @@ class Puller():
         self.ms.ResetBeforePull()
 
     async def PulMotorsControl(self):
-        for i in range(10):
+        for i in range(40):
+            self.dtsm.append(Time.time())
             # self.stFl = self.sl.BtnFl['end']
             self.stFl = self.sl.Sl['end']
             self.a = self.sl.Sl['a']
