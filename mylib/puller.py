@@ -233,13 +233,19 @@ class Puller():
             self.stFl = self.sl.Sl['end']
             self.a = self.sl.Sl['a']
             self.v = self.sl.Sl['v']
-            self.NewT = self.sl.Sl['T0']
+            T = self.sl.Sl['T0']
             Ki = self.sl.Sl['Ki']
             Kp = self.sl.Sl['Kp']
             Kd = self.sl.Sl['Kd']
-            # print(self.v)
+            # alf = self.sl.Sl['alf']
+            x, L = self.ms.calcX_L()
+            r0 = self.ms.funR_x(x)
+            # r_max = self.ms.funR_x(self.ms.xMax)
+            r = self.ms.funR_x(x)
+            t = T * r**2 / r0**2
+            self.NewT = t
             if self.sg.level is not None:
-                self.dv = self.obrSvas(self.NewT, Ki, Kp, Kd)
+                self.dv = self.obrSvas(t, Ki, Kp, Kd)
             else:
                 self.dv = 0
                 self.stFl = await self.ms.PulMove(self.v, self.a, self.dv,
