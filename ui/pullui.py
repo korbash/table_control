@@ -20,7 +20,7 @@ from mylib import Puller
 app = QApplication(sys.argv)
 
 class MplCanvas(FigureCanvasQTAgg):
-    def __init__(self, width=5, height=4, dpi=100, label=None) -> None:
+    def __init__(self, width=10, height=8, dpi=100, label=None) -> None:
         fig = Figure(figsize=(width, height), dpi=dpi)
         self.axes = fig.add_subplot(111)
         super(MplCanvas, self).__init__(fig)
@@ -39,6 +39,12 @@ class MplCanvas(FigureCanvasQTAgg):
             return
         self.lines[label].set_xdata(x)
         self.lines[label].set_ydata(y)
+        # self.lines[label].set_xlim((np.min(x), np.max(x)))
+        # self.lines[label].set_ylim((np.min(y), np.max(y)))
+        
+        self.axes.relim()
+        self.axes.autoscale_view()
+                                   
         self.draw_idle()
 
 class PullWindow(QMainWindow):
@@ -51,6 +57,8 @@ class PullWindow(QMainWindow):
         self.T0 = 10
         self.w = 100
         self.iterations = 50
+
+        self.ended=False
 
         # layouts
         mainLayout = QVBoxLayout()
@@ -135,6 +143,9 @@ class PullWindow(QMainWindow):
         self.TSlider.sliderMoved.connect(self.onNewTSlider)
         self.wDial.sliderMoved.connect(self.onNewWDial)
 
+    def setProgress(self, progress):
+        self.progressBar.setValue(progress)
+        self.progressText.setText(str(progress))
 
     def updateAllPlots(self, data):
         if not 'time' in data:
@@ -153,7 +164,6 @@ class PullWindow(QMainWindow):
     def onNewVSlider(self, v):
         self.vInput.setText(str(v))
         self.v = v
-        print(v)
     def onNewASlider(self, a):
         self.aInput.setText(str(a))
         self.a = a       
@@ -178,10 +188,30 @@ pl = Puller()
 pl.win = window
 
 @asyncSlot()
-async def start():
+async def mts():
+    window.mtsButton.setEnabled(False)
     await pl.ms.MoveToStart()
+    window.mtsButton.setEnabled(True)
 
-window.mtsButton.pressed.connect(start)
+async def plStart():
+    async with pl:
+        pass
+
+@asyncSlot()
+async def start():
+    window.stopButton.setText('STOP')
+    window.stopButton.pressed.connect(end)
+    window.interationsInput.setEnabled(False)
+    pl.ms.x0 = 80
+    asyncio.create_task(plStart())
+
+@asyncSlot()
+async def end():
+    window.ended = True
+    window.stopButton.setEnabled(False)
+
+window.mtsButton.pressed.connect(mts)
+window.stopButton.pressed.connect(start)
 
 with loop:
     loop.run_forever()

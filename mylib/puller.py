@@ -72,7 +72,6 @@ class Puller():
         self.Clear()
         self.MotorsControlStart()
         self.tasks = []
-        self.pd.Show()
         self.tasks.append(asyncio.create_task(self.PulMotorsControl(), name='motorsLR'))
         # self.tasks.append(asyncio.create_task(self.FireMove(), name='motorM'))
         self.tasks.append(asyncio.create_task(self.Read()))
@@ -100,11 +99,12 @@ class Puller():
 
     async def plotter(self):
         while True:
+            await asyncio.sleep(.5)
             # print('plotted')
-            w = int(self.sl.Sl['window'])
-            self.pd.Apdate(for_all=self.data.iloc[-w:])
-            push_notebook()
-            await asyncio.sleep(2.5)
+            w = int(self.win.w)
+            self.win.updateAllPlots(self.data.iloc[-w:])
+            # self.pd.Apdate(for_all=self.data.iloc[-w:])
+            # push_notebook()
 
     async def Read(self):
         print('aaaa')
@@ -227,16 +227,21 @@ class Puller():
         self.ms.ResetBeforePull()
 
     async def PulMotorsControl(self):
-        for i in range(40):
+        N = int(self.win.iterations)
+        for i in range(N):
             self.dtsm.append(Time.time())
             # self.stFl = self.sl.BtnFl['end']
-            self.stFl = self.sl.Sl['end']
-            self.a = self.sl.Sl['a']
-            self.v = self.sl.Sl['v']
-            T = self.sl.Sl['T0']
-            Ki = self.sl.Sl['Ki']
-            Kp = self.sl.Sl['Kp']
-            Kd = self.sl.Sl['Kd']
+            self.stFl = self.win.ended
+            self.a = self.win.a
+            self.v = self.win.v
+            T = self.win.T0
+            # self.stFl = self.sl.Sl['end']
+            # self.a = self.sl.Sl['a']
+            # self.v = self.sl.Sl['v']
+            # T = self.sl.Sl['T0']
+            Ki = .4
+            Kp = .15
+            Kd = 0
             # alf = self.sl.Sl['alf']
             x, L = self.ms.calcX_L()
             r0 = self.ms.funR_x(x)
@@ -252,6 +257,9 @@ class Puller():
                                                   self.stFl)
             if self.stFl:
                 break
+            self.win.setProgress(i + 1)
+        self.stFl = True
+        self.win.stopButton.setEnabled(False)
 
     async def FireMove(self):
         while True:
