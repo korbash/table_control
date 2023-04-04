@@ -73,7 +73,8 @@ class Puller():
         self.MotorsControlStart()
         self.tasks = []
         self.pd.Show()
-        self.tasks.append(asyncio.create_task(self.PulMotorsControl(), name='motorsLR'))
+        self.tasks.append(
+            asyncio.create_task(self.PulMotorsControl(), name='motorsLR'))
         # self.tasks.append(asyncio.create_task(self.FireMove(), name='motorM'))
         self.tasks.append(asyncio.create_task(self.Read()))
         self.tasks.append(asyncio.create_task(self.plotter()))
@@ -136,7 +137,8 @@ class Puller():
             await asyncio.sleep(0)
             param['vM'], param['aM'] = self.ms.motorM.calcX_V_A()[1:3]
             await asyncio.sleep(0)
-            param['pressure'] = param['tension'] * self.ms.R_x(0)**2 / self.ms.R_x(param['x'])**2
+            param['pressure'] = param['tension'] * self.ms.R_x(
+                0)**2 / self.ms.R_x(param['x'])**2
             await asyncio.sleep(0)
             param['dv'] = self.dv
             param['hFire'] = self.ms.hFire
@@ -147,7 +149,7 @@ class Puller():
             self.sg.NewPoint(param['tension'], param['time'])
             l = len(self.data)
             self.data.loc[l] = param
-            if self.sg.mean is None: 
+            if self.sg.mean is None:
                 self.wi = l
             else:
                 while self.data.loc[self.wi, 'time'] <= self.sg.t:
@@ -248,8 +250,8 @@ class Puller():
                 self.dv = self.obrSvas(t, Ki, Kp, Kd)
             else:
                 self.dv = 0
-                self.stFl = await self.ms.PulMove(self.v, self.a, self.dv,
-                                                  self.stFl, self.sg.New_tact)
+            self.stFl = await self.ms.PulMove(self.v, self.a, self.dv,
+                                              self.stFl, self.sg.New_tact)
             if self.stFl:
                 break
 
