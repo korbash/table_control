@@ -38,7 +38,7 @@ class Puller():
             Time.sleep(0.001)
         self.tg = ReadingDevise(tg, 'tension', weightCoef=-2.078990076470489)
         Time.sleep(0.001)
-        # self.pm = ReadingDevise(pm, 'power', weightCoef=1000)
+        self.pm = ReadingDevise(pm, 'power', weightCoef=1000)
         self.ms = MotorSystem(simulate=simulate,
                               simulator=self.sim,
                               blocking=blocking)
@@ -110,8 +110,6 @@ class Puller():
             param['motorM'] = self.ms.motorM.Getposition()
             param['power'] = self.pm.ReadValue()
             param['tension'] = self.tg.ReadValue()
-            tFn = Time.time()
-            param['dt'] = tFn - tSt
             param['x'], param['L'] = self.ms.calcX_L()
             param['Le'] = self.ms.funL_x(param['x'])
             param['vL'], param['aL'] = self.ms.motorL.calcX_V_A()[1:3]
@@ -220,7 +218,7 @@ class Puller():
             else:
                 self.dv = 0
                 self.stFl = await self.ms.PulMove(self.v, self.a, self.dv,
-                                                  self.stFl)
+                                                  self.stFl, self.sg.New_tact)
             if self.stFl:
                 break
 

@@ -67,7 +67,12 @@ class Motor():
     a_max = 30
     dp_thr = 0.025
 
-    def __init__(self, mot, motor_name, p_max=99, blocking=False, dp_thr=dp_thr):
+    def __init__(self,
+                 mot,
+                 motor_name,
+                 p_max=99,
+                 blocking=False,
+                 dp_thr=dp_thr):
 
         self.mot = mot
         self.name = motor_name
@@ -190,7 +195,8 @@ class Motor():
         v = self.chekV_A(v, a, x - x0)
         self.Set_velocity(v, a)
         flag = self.Move_to_iner(x)
-        await self.WaitWhileInMotion(waitForTrue=np.abs(self.Getposition() - x) > self.dp_thr)
+        await self.WaitWhileInMotion(
+            waitForTrue=np.abs(self.Getposition() - x) > self.dp_thr)
         return flag
 
     def Test(self):
@@ -526,7 +532,7 @@ class MotorSystem():
             self.motorR.MoveTo(self.motorR.position_max - L + dL, v, a))
         await asyncio.wait([t1, t2])
 
-    async def Move(self, L, v=-1, a=-1, vdiff=0, da=0):
+    async def Move(self, L, v=-1, a=-1, vdiff=0, da=0, tact_fun=None):
         if (v == -1):
             v = self.v_norm
         if (a == -1):
@@ -565,6 +571,8 @@ class MotorSystem():
             flag += self.motorL.Move_to_iner(xL + sL)
         t1 = asyncio.create_task(self.motorL.WaitWhileInMotion())
         t2 = asyncio.create_task(self.motorR.WaitWhileInMotion())
+        if tact_fun is not None:
+            tact_fun(Time.time() + self.motorL.CalculateMottonTime())
         await asyncio.wait([t1, t2])
 
         if (flag < 0):
@@ -603,7 +611,7 @@ class MotorSystem():
     async def LRoscillation():
         pass
 
-    async def PulMove(self, v, a, dv, stFl):
+    async def PulMove(self, v, a, dv, stFl, tact_fun):
         dt = 0  # рудимент пока похраним
         alf = dv / v
         x, L = self.calcX_L()
@@ -621,10 +629,10 @@ class MotorSystem():
         print('dLnew:', dLnew, 'Xnew:', Xnew, ':', dLnew)
         dLnew += v * t / 2 * np.sign(dLnew)
         if Xnew < self.xMax and not stFl:
-            await self.Move(dLnew, v, a, alf * v, dt)
+            await self.Move(dLnew, v, a, alf * v, dt, tact_fun)
 
         else:
-            await self.Move(-L, v, a, 0, dt)
+            await self.Move(-L, v, a, 0, dt, tact_fun)
             t = self.motorR.CalculateMottonTime(L, v, a)
             Xnew = x + t * alf * v
             print("xMax=", self.xMax, "L_x(xMax)=",
