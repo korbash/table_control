@@ -239,7 +239,7 @@ class Puller():
             # self.a = self.sl.Sl['a']
             # self.v = self.sl.Sl['v']
             # T = self.sl.Sl['T0']
-            Ki = .4
+            Ki = .1
             Kp = .15
             Kd = 0
             # alf = self.sl.Sl['alf']
@@ -253,8 +253,8 @@ class Puller():
                 self.dv = self.obrSvas(t, Ki, Kp, Kd)
             else:
                 self.dv = 0
-                self.stFl = await self.ms.PulMove(self.v, self.a, self.dv,
-                                                  self.stFl, self.sg.New_tact)
+            self.stFl = await self.ms.PulMove(self.v, self.a, self.dv,
+                                              self.stFl, self.sg.New_tact)
             if self.stFl:
                 break
             self.win.setProgress(i + 1)
