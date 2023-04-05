@@ -36,7 +36,7 @@ class Puller():
             Time.sleep(0.001)
             pm = dr.powerMeter()
             Time.sleep(0.001)
-        self.tg = ReadingDevise(tg, 'tension', weightCoef=2.078990076470489)
+        self.tg = ReadingDevise(tg, 'tension', weightCoef=1/0.5652633)
         Time.sleep(0.001)
         self.pm = ReadingDevise(pm, 'power', weightCoef=1000)
         self.ms = MotorSystem(simulate=simulate,
