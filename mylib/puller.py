@@ -254,7 +254,7 @@ class Puller():
             else:
                 self.dv = 0
                 self.stFl = await self.ms.PulMove(self.v, self.a, self.dv,
-                                                  self.stFl)
+                                                  self.stFl, self.sg.New_tact)
             if self.stFl:
                 break
             self.win.setProgress(i + 1)
