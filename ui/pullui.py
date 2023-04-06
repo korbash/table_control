@@ -4,8 +4,8 @@ import asyncio
 
 path += ['..']
 from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QMainWindow, QVBoxLayout, QHBoxLayout, QLabel,\
-     QSlider, QTextEdit, QDial, QProgressBar, QLineEdit
-from PyQt6.QtCore import QSize, Qt
+     QSlider, QTextEdit, QDial, QProgressBar, QLineEdit, QDialog, QDialogButtonBox
+from PyQt6.QtCore import QSize, Qt, pyqtSignal
 from PyQt6.QtGui import QIntValidator, QDoubleValidator
 from qasync import QEventLoop, asyncSlot
 
@@ -18,6 +18,30 @@ import numpy as np
 from mylib import Puller
 
 app = QApplication(sys.argv)
+
+class CustomSlider(QSlider):
+
+    doubleValueChanged = pyqtSignal(float)
+
+    def __init__(self, min=0, max=100, pow=3, value=None, *args, **kargs):
+        super().__init__(*args, **kargs)
+        self.min = min
+        self.max = max
+        self.pow = pow
+
+        if value is not None:
+            self.setValue(value)
+        self.valueChanged.connect(self._emitDoubleValueChanged)
+        
+    def setValue(self, value):
+        v = (value - self.min) / (self.max - self.min) * 100
+        super().setValue(int(v))
+    
+    def value(self):
+        return np.round(super().value() / 100 * (self.max - self.min) + self.min, self.pow)
+    
+    def _emitDoubleValueChanged(self):
+        self.doubleValueChanged.emit(self.value())
 
 class MplCanvas(FigureCanvasQTAgg):
     def __init__(self, width=10, height=8, dpi=100, label=None) -> None:
@@ -47,6 +71,82 @@ class MplCanvas(FigureCanvasQTAgg):
                                    
         self.draw_idle()
 
+class PIDWindow(QDialog):
+    def __init__(self, Kp, Ki, Kd):
+        super().__init__()
+
+        self.Kp = Kp
+        self.Ki = Ki
+        self.Kd = Kd
+
+        hostLayout = QVBoxLayout()
+        mainLayout = QHBoxLayout()
+        labelLayout = QVBoxLayout()
+        sliderLayout = QVBoxLayout()
+        editLayout = QVBoxLayout()
+        hostLayout.addLayout(mainLayout)
+        mainLayout.addLayout(labelLayout)
+        mainLayout.addLayout(sliderLayout)
+        mainLayout.addLayout(editLayout)
+
+        labelLayout.addWidget(QLabel('Kp'))
+        labelLayout.addWidget(QLabel('Ki'))
+        labelLayout.addWidget(QLabel('Kd'))
+
+        self.pSlider = CustomSlider(min=0, max=1, orientation=Qt.Orientation.Horizontal, value=self.Kp)
+        self.iSlider = CustomSlider(min=0, max=1, orientation=Qt.Orientation.Horizontal, value=self.Ki)
+        self.dSlider = CustomSlider(min=-1, max=1, orientation=Qt.Orientation.Horizontal, value=self.Kd)
+        sliderLayout.addWidget(self.pSlider)
+        sliderLayout.addWidget(self.iSlider)
+        sliderLayout.addWidget(self.dSlider)
+
+        self.pEdit = QLineEdit(str(self.Kp))
+        self.iEdit = QLineEdit(str(self.Ki))
+        self.dEdit = QLineEdit(str(self.Kd))
+        editLayout.addWidget(self.pEdit)
+        editLayout.addWidget(self.iEdit)
+        editLayout.addWidget(self.dEdit)
+
+        self.buttonBox = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Apply | QDialogButtonBox.StandardButton.Cancel)
+        hostLayout.addWidget(self.buttonBox)
+
+        self.setLayout(hostLayout)
+
+        self.buttonBox.accepted.connect(self.accept)
+        self.buttonBox.rejected.connect(self.reject)
+        
+
+        self.pSlider.doubleValueChanged.connect(self.updateKp)
+        self.iSlider.doubleValueChanged.connect(self.updateKi)
+        self.dSlider.doubleValueChanged.connect(self.updateKd)
+        self.pEdit.editingFinished.connect(self.updateKp)
+        self.iEdit.editingFinished.connect(self.updateKi)
+        self.dEdit.editingFinished.connect(self.updateKd)
+
+
+    def updateKp(self, Kp=None):
+        if Kp is not None:
+            self.pEdit.setText(str(Kp))
+        else:
+            Kp = float(self.pEdit.text())
+            self.pSlider.setValue(int(Kp))
+        self.Kp = Kp
+
+    def updateKi(self, Ki=None):
+        if Ki is not None:
+            self.iEdit.setText(str(Ki))
+        else:
+            Ki = float(self.iEdit.text())
+            self.iSlider.setValue(int(Ki))
+        self.Ki = Ki
+
+    def updateKd(self, Kd=None):
+        if Kd is not None:
+            self.dEdit.setText(str(Kd))
+        else:
+            Kd = float(self.dEdit.text())
+            self.dSlider.setValue(int(Kd))
+        self.Kd = Kd
 class PullWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -57,6 +157,10 @@ class PullWindow(QMainWindow):
         self.T0 = 10
         self.w = 100
         self.iterations = 50
+
+        self.Kp = 1
+        self.Ki = 0
+        self.Kd = 0
 
         self.ended=False
 
@@ -76,6 +180,7 @@ class PullWindow(QMainWindow):
         settingsLayout.addLayout(subsettingsLayout)
 
         # widgets
+        self.zeroButton = QPushButton('Zero')
         self.mtsButton = QPushButton('MTS')
         self.progressBar = QProgressBar()
         self.progressBar.setMaximum(self.iterations)
@@ -84,6 +189,7 @@ class PullWindow(QMainWindow):
         self.interationsInput.setValidator(QIntValidator())
         self.interationsInput.setFixedWidth(50)
         self.stopButton = QPushButton('START')
+        progressLayout.addWidget(self.zeroButton)
         progressLayout.addWidget(self.mtsButton)
         progressLayout.addWidget(self.progressBar)
         progressLayout.addWidget(self.progressText)
@@ -97,15 +203,13 @@ class PullWindow(QMainWindow):
         plotLayout.addWidget(self.tensionPlot)
         plotLayout.addWidget(self.motionPlot)
 
-        self.vSlider = QSlider(Qt.Orientation.Horizontal, minimum=.1, maximum=15, value=self.v)
-        self.vSlider.setTickInterval(5)
-        self.vSlider.setSingleStep(2)
+        self.vSlider = CustomSlider(min=0.1, max=15, orientation=Qt.Orientation.Horizontal, value=self.v)
         self.vInput = QLineEdit(str(self.v))                                                   
         self.vInput.setFixedWidth(100)                                                         
-        self.aSlider = QSlider(Qt.Orientation.Horizontal, minimum=.1, maximum=15, value=self.a)
+        self.aSlider = CustomSlider(min=.1, max=15, orientation=Qt.Orientation.Horizontal, value=self.a)
         self.aInput = QLineEdit(str(self.a))                                                   
         self.aInput.setFixedWidth(100)                                                         
-        self.TSlider = QSlider(Qt.Orientation.Horizontal, minimum=0, maximum=200, value=self.T0) 
+        self.TSlider = CustomSlider(min=0, max=200, orientation=Qt.Orientation.Horizontal, value=self.T0)
         self.TInput = QLineEdit(str(self.T0))
         self.TInput.setFixedWidth(100)
         vLayout = QHBoxLayout()
@@ -138,10 +242,12 @@ class PullWindow(QMainWindow):
         self.setCentralWidget(container)
 
         self.interationsInput.textChanged.connect(self.onNewIterations)
-        self.vSlider.sliderMoved.connect(self.onNewVSlider)
-        self.aSlider.sliderMoved.connect(self.onNewASlider)
-        self.TSlider.sliderMoved.connect(self.onNewTSlider)
-        self.wDial.sliderMoved.connect(self.onNewWDial)
+        self.vSlider.doubleValueChanged.connect(self.onNewVSlider)
+        self.aSlider.doubleValueChanged.connect(self.onNewASlider)
+        self.TSlider.doubleValueChanged.connect(self.onNewTSlider)
+        self.wDial.valueChanged.connect(self.onNewWDial)
+
+        self.PIDButton.pressed.connect(self.callPIDSettings)
 
     def setProgress(self, progress):
         self.progressBar.setValue(progress)
@@ -160,6 +266,13 @@ class PullWindow(QMainWindow):
             self.motionPlot.changeLine(data['time'], data['motorR'], 'motorR')  
         if 'motorM' in data:
             self.motionPlot.changeLine(data['time'], data['motorM'], 'motorM')  
+        
+    def callPIDSettings(self):
+        PIDs = PIDWindow(self.Kp, self.Ki, self.Kd)
+        if PIDs.exec():
+            self.Kp = PIDs.Kp
+            self.Ki = PIDs.Ki
+            self.Kd = PIDs.Kd
     
     def onNewVSlider(self, v):
         self.vInput.setText(str(v))
@@ -178,6 +291,34 @@ class PullWindow(QMainWindow):
             return
         self.iterations = int(num)
         self.progressBar.setMaximum(num) 
+    def onNewPIDCoefs(self, Kp, Ki, Kd):
+        self.Kp = Kp
+        self.Ki = Ki
+        self.Kd = Kd
+    
+class ZeroDialog(QDialog):
+    def __init__(self, val):
+        super().__init__()
+        self.setWindowTitle('Last weight shift')
+
+
+        mLayout = QVBoxLayout()
+
+        message = QLabel(str(val))
+        mLayout.addWidget(message)        
+
+        buttonLayout = QHBoxLayout()
+        self.acceptButton = QPushButton('OK')
+        self.retryButton = QPushButton('Retry')
+        buttonLayout.addWidget(self.acceptButton)
+        buttonLayout.addWidget(self.retryButton)
+        mLayout.addLayout(buttonLayout)
+
+        self.setLayout(mLayout)
+
+        self.acceptButton.pressed.connect(self.accept)
+        self.retryButton.pressed.connect(self.reject)
+
 loop = QEventLoop(app)
 asyncio.set_event_loop(loop)
 
@@ -186,6 +327,19 @@ window.show()
 
 pl = Puller()
 pl.win = window
+
+def zeroTs():
+    while True:
+        pl.tg.SetZeroWeight(tau=3)
+        pl.tg.SetZeroWeight(tau=3)
+        res = pl.tg.SetZeroWeight(tau=4) 
+
+        zd = ZeroDialog(res)
+        if zd.exec():
+            break
+
+
+window.zeroButton.pressed.connect(zeroTs)
 
 @asyncSlot()
 async def mts():
