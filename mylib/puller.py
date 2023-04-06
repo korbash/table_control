@@ -251,6 +251,7 @@ class Puller():
             self.NewT = t
             if self.sg.level is not None:
                 self.dv = self.obrSvas(t, Ki, Kp, Kd)
+                print(f'dv={self.dv}')
             else:
                 self.dv = 0
             self.stFl = await self.ms.PulMove(self.v, self.a, self.dv,
