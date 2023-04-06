@@ -63,6 +63,8 @@ class MplCanvas(FigureCanvasQTAgg):
             self.axes.legend()
 
     def changeLine(self, x, y, label):
+        if len(x) > len(y):
+            x = x[len(x) - len(y):]
         if not label in self.lines:
             self.addPlot(x, y, label=label, legend=(len(self.lines) > 0))
             return
@@ -276,6 +278,10 @@ class PullWindow(QMainWindow):
             self.powerPlot.changeLine(data['time'], data['power'], 'power')
         if 'tension' in data:
             self.tensionPlot.changeLine(data['time'], data['tension'], 'tension')
+        if 'tensionWgl' in data:
+            self.tensionPlot.changeLine(data['time'], data['tensionWgl'], 'tensionWgl')
+        if 'tensionEXPgl' in data:
+            self.tensionPlot.changeLine(data['time'], data['tensionEXPgl'], 'tensionEXPgl')
         if 'motorL' in data:
             self.motionPlot.changeLine(data['time'], data['motorL'], 'motorL') 
         if 'motorR' in data:
