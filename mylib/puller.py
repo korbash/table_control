@@ -155,7 +155,7 @@ class Puller():
                     self.data.loc[self.wi, 'tensionWgl'] = self.sg.mean
                     self.data.loc[self.wi, 'tensionEXPgl'] = self.sg.level
             tFn2 = Time.time()
-            await asyncio.sleep(.5)
+            await asyncio.sleep(.3)
             # print(f'dt={tFn2 - tSt}')
             self.dts.append(tFn2 - tSt)
             self.dts2.append(tFn2 - tFn15)
@@ -239,9 +239,9 @@ class Puller():
             # self.a = self.sl.Sl['a']
             # self.v = self.sl.Sl['v']
             # T = self.sl.Sl['T0']
-            Ki = .1
-            Kp = .15
-            Kd = 0
+            Ki = self.win.Ki
+            Kp = self.win.Kp
+            Kd = self.win.Kd
             # alf = self.sl.Sl['alf']
             x, L = self.ms.calcX_L()
             r0 = self.ms.funR_x(x)
