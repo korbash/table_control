@@ -5,7 +5,7 @@ import asyncio
 path += ['..']
 from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QMainWindow, QVBoxLayout, QHBoxLayout, QLabel,\
      QSlider, QTextEdit, QDial, QProgressBar, QLineEdit, QDialog, QDialogButtonBox
-from PyQt6.QtCore import QSize, Qt, pyqtSignal
+from PyQt6.QtCore import QSize, Qt, pyqtSignal, QLocale
 from PyQt6.QtGui import QIntValidator, QDoubleValidator
 from qasync import QEventLoop, asyncSlot
 
@@ -18,6 +18,11 @@ import numpy as np
 from mylib import Puller
 
 app = QApplication(sys.argv)
+
+def getDoubleValidator():
+    validator = QDoubleValidator()
+    validator.setLocale(QLocale("en_US"))
+    return validator
 
 class CustomSlider(QSlider):
 
@@ -103,6 +108,9 @@ class PIDWindow(QDialog):
         self.pEdit = QLineEdit(str(self.Kp))
         self.iEdit = QLineEdit(str(self.Ki))
         self.dEdit = QLineEdit(str(self.Kd))
+        self.pEdit.setValidator(getDoubleValidator())
+        self.dEdit.setValidator(getDoubleValidator())
+        self.iEdit.setValidator(getDoubleValidator())
         editLayout.addWidget(self.pEdit)
         editLayout.addWidget(self.iEdit)
         editLayout.addWidget(self.dEdit)
@@ -206,12 +214,15 @@ class PullWindow(QMainWindow):
         self.vSlider = CustomSlider(min=0.1, max=15, orientation=Qt.Orientation.Horizontal, value=self.v)
         self.vInput = QLineEdit(str(self.v))                                                   
         self.vInput.setFixedWidth(100)                                                         
+        self.vInput.setValidator(getDoubleValidator())
         self.aSlider = CustomSlider(min=.1, max=15, orientation=Qt.Orientation.Horizontal, value=self.a)
         self.aInput = QLineEdit(str(self.a))                                                   
         self.aInput.setFixedWidth(100)                                                         
+        self.aInput.setValidator(getDoubleValidator())
         self.TSlider = CustomSlider(min=0, max=200, orientation=Qt.Orientation.Horizontal, value=self.T0)
         self.TInput = QLineEdit(str(self.T0))
         self.TInput.setFixedWidth(100)
+        self.TInput.setValidator(getDoubleValidator())
         vLayout = QHBoxLayout()
         vLayout.addWidget(QLabel('v '))
         vLayout.addWidget(self.vSlider)
@@ -231,6 +242,7 @@ class PullWindow(QMainWindow):
 
         self.wDial = QDial(minimum=50, maximum=10000, value=self.w, singleStep=.5)
         self.wInput = QLineEdit(str(self.w))
+        self.wInput.setValidator(QIntValidator())
         self.PIDButton = QPushButton('PID settings')
         subsettingsLayout.addWidget(QLabel('window'))
         subsettingsLayout.addWidget(self.wDial)
@@ -246,6 +258,10 @@ class PullWindow(QMainWindow):
         self.aSlider.doubleValueChanged.connect(self.onNewASlider)
         self.TSlider.doubleValueChanged.connect(self.onNewTSlider)
         self.wDial.valueChanged.connect(self.onNewWDial)
+        self.vInput.returnPressed.connect(self.onNewVSlider)
+        self.aInput.returnPressed.connect(self.onNewASlider)
+        self.TInput.returnPressed.connect(self.onNewTSlider)
+        self.wInput.returnPressed.connect(self.onNewWDial)
 
         self.PIDButton.pressed.connect(self.callPIDSettings)
 
@@ -274,17 +290,33 @@ class PullWindow(QMainWindow):
             self.Ki = PIDs.Ki
             self.Kd = PIDs.Kd
     
-    def onNewVSlider(self, v):
-        self.vInput.setText(str(v))
+    def onNewVSlider(self, v=None):
+        if v is not None:
+            self.vInput.setText(str(v))
+        else:
+            v = float(self.vInput.text())
+            self.vSlider.setValue(v)
         self.v = v
-    def onNewASlider(self, a):
-        self.aInput.setText(str(a))
+    def onNewASlider(self, a=None):
+        if a is not None:
+            self.aInput.setText(str(a))
+        else:
+            a = float(self.aInput.text())
+            self.aSlider.setValue(a)
         self.a = a       
-    def onNewTSlider(self, T):
-        self.TInput.setText(str(T))
+    def onNewTSlider(self, T=None):
+        if T is not None:
+            self.TInput.setText(str(T))
+        else:
+            T = float(self.TInput.text())
+            self.TSlider.setValue(T)
         self.T0 = T       
-    def onNewWDial(self, w):
-        self.wInput.setText(str(w))
+    def onNewWDial(self, w=None):
+        if w is not None:
+            self.wInput.setText(str(w))
+        else:
+            w = float(self.wInput.text())
+            self.wDial.setValue(w)
         self.w = w
     def onNewIterations(self, num):
         if len(num) == 0:
