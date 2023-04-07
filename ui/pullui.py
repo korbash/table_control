@@ -157,6 +157,43 @@ class PIDWindow(QDialog):
             Kd = float(self.dEdit.text())
             self.dSlider.setValue(int(Kd))
         self.Kd = Kd
+
+class TensWindow(QDialog):
+    def __init__(self, puller):
+        super().__init__()
+
+        self.Tt = 10
+        self.pl = puller
+
+        mainLayout = QVBoxLayout()
+        settingsLayout = QHBoxLayout()
+
+        self.tensPlot = MplCanvas()
+        mainLayout.addWidget(self.tensPlot)
+
+        self.tensInput = QLineEdit(str(self.Tt))
+        self.tensInput.setValidator(getDoubleValidator())
+        self.setButton = QPushButton('Set')
+        settingsLayout.addWidget(self.tensInput)
+        settingsLayout.addWidget(self.setButton)
+        mainLayout.addLayout(settingsLayout)
+
+        self.setLayout(mainLayout)
+
+        self.setButton.pressed.connect(self.pull)
+
+    @asyncSlot()
+    async def pull(self):
+        self.Tt = float(self.tensInput.text())
+        self.setButton.setEnabled(False)
+        x = []
+        y = []
+        async for i in self.pl.SetW(self.Tt, dw=0.1):
+            x.append(len(x))
+            y.append(i)
+            self.tensPlot.changeLine(x, y, 'tension')
+        self.setButton.setEnabled(True)
+
 class PullWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -168,8 +205,8 @@ class PullWindow(QMainWindow):
         self.w = 100
         self.iterations = 50
 
-        self.Kp = 1
-        self.Ki = 0
+        self.Kp = .15 * 3 / 5
+        self.Ki = 0.1
         self.Kd = 0
 
         self.ended=False
@@ -192,6 +229,7 @@ class PullWindow(QMainWindow):
         # widgets
         self.zeroButton = QPushButton('Zero')
         self.mtsButton = QPushButton('MTS')
+        self.tensButton = QPushButton('Pull')
         self.progressBar = QProgressBar()
         self.progressBar.setMaximum(self.iterations)
         self.progressText = QLabel('0/')
@@ -201,6 +239,7 @@ class PullWindow(QMainWindow):
         self.stopButton = QPushButton('START')
         progressLayout.addWidget(self.zeroButton)
         progressLayout.addWidget(self.mtsButton)
+        progressLayout.addWidget(self.tensButton)
         progressLayout.addWidget(self.progressBar)
         progressLayout.addWidget(self.progressText)
         progressLayout.addWidget(self.interationsInput)
@@ -269,7 +308,7 @@ class PullWindow(QMainWindow):
 
     def setProgress(self, progress):
         self.progressBar.setValue(progress)
-        self.progressText.setText(str(progress))
+        self.progressText.setText(f'{progress}/')
 
     def updateAllPlots(self, data):
         if not 'time' in data:
@@ -378,6 +417,12 @@ def zeroTs():
 
 
 window.zeroButton.pressed.connect(zeroTs)
+
+def pullCall():
+    pullWin = TensWindow(pl)
+    pullWin.exec()
+
+window.tensButton.pressed.connect(pullCall)
 
 @asyncSlot()
 async def mts():

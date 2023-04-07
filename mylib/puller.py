@@ -155,7 +155,7 @@ class Puller():
                     self.data.loc[self.wi, 'tensionWgl'] = self.sg.mean
                     self.data.loc[self.wi, 'tensionEXPgl'] = self.sg.level
             tFn2 = Time.time()
-            await asyncio.sleep(.3)
+            await asyncio.sleep(.5)
             # print(f'dt={tFn2 - tSt}')
             self.dts.append(tFn2 - tSt)
             self.dts2.append(tFn2 - tFn15)
@@ -183,7 +183,7 @@ class Puller():
         self.pidI = min(self.pidI, Imax)
         return Kp * (E + Kd * dT) + self.pidI
 
-    def SetW(self,
+    async def SetW(self,
              wide,
              dw=0.1,
              k=None,
@@ -200,15 +200,17 @@ class Puller():
             dx = (wide - w) / k
             if not quiet:
                 print('w= ', w, ', dw= ', w - wide, ', dx=  ', dx)
-            asyncio.run(
-                self.ms.motorR.MoveTo(
-                    self.ms.motorR.Getposition(analitic=True) - dx, a=1))
+            yield w
+            # TODO чота сделать
+            await self.ms.motorR.MoveTo(
+                    self.ms.motorR.Getposition(analitic=True) - dx, a=1)
             while self.ms.motorR.IsInMotion():
                 pass
             Time.sleep(0.1)
         w = self.tg.ReadValue(tau=tau)
         print('SetW finish value=', end=' ')
         print(w)
+        yield w
         '''self.motorR.Getposition()
         self.motorL.Getposition()
         w_points = np.append(w_points, w)
@@ -218,7 +220,7 @@ class Puller():
             'x': x_points,
         })
         k_data.plot(x='x', y='w')'''
-        return w
+        # return w
 
     def MotorsControlStart(self):
         self.phase = 3
