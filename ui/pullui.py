@@ -215,7 +215,7 @@ class PullWindow(QMainWindow):
         mainLayout = QVBoxLayout()
 
         progressLayout = QHBoxLayout()
-        plotLayout = QHBoxLayout()
+        plotLayout = QVBoxLayout()
         settingsLayout = QHBoxLayout()
         sliderLayout = QVBoxLayout()
         subsettingsLayout = QVBoxLayout()
