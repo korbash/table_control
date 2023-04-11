@@ -61,6 +61,7 @@ class MplCanvas(FigureCanvasQTAgg):
         [self.lines[label]] = self.axes.plot(x, y, label=label)
         if legend:
             self.axes.legend()
+        self.axes.grid()
 
     def changeLine(self, x, y, label):
         if len(x) > len(y):
@@ -100,9 +101,9 @@ class PIDWindow(QDialog):
         labelLayout.addWidget(QLabel('Ki'))
         labelLayout.addWidget(QLabel('Kd'))
 
-        self.pSlider = CustomSlider(min=0, max=1, orientation=Qt.Orientation.Horizontal, value=self.Kp)
-        self.iSlider = CustomSlider(min=0, max=1, orientation=Qt.Orientation.Horizontal, value=self.Ki)
-        self.dSlider = CustomSlider(min=-1, max=1, orientation=Qt.Orientation.Horizontal, value=self.Kd)
+        self.pSlider = CustomSlider(min=0, max=.01, orientation=Qt.Orientation.Horizontal, value=self.Kp, pow=5)
+        self.iSlider = CustomSlider(min=0, max=1, orientation=Qt.Orientation.Horizontal, value=self.Ki, pow=5)
+        self.dSlider = CustomSlider(min=-1, max=1, orientation=Qt.Orientation.Horizontal, value=self.Kd, pow=5)
         sliderLayout.addWidget(self.pSlider)
         sliderLayout.addWidget(self.iSlider)
         sliderLayout.addWidget(self.dSlider)
@@ -205,8 +206,8 @@ class PullWindow(QMainWindow):
         self.w = 100
         self.iterations = 50
 
-        self.Kp = .15 * 3 / 5
-        self.Ki = 0.1
+        self.Kp = .01
+        self.Ki = 0
         self.Kd = 0
 
         self.ended=False
@@ -369,7 +370,7 @@ class PullWindow(QMainWindow):
         self.iterations = int(num)
         self.progressBar.setMaximum(num) 
     def onNewPIDCoefs(self, Kp, Ki, Kd):
-        self.Kp = Kp
+        self.Kp = Kp / 100
         self.Ki = Ki
         self.Kd = Kd
     
