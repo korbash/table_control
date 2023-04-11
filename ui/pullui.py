@@ -101,9 +101,9 @@ class PIDWindow(QDialog):
         labelLayout.addWidget(QLabel('Ki'))
         labelLayout.addWidget(QLabel('Kd'))
 
-        self.pSlider = CustomSlider(min=0, max=.01, orientation=Qt.Orientation.Horizontal, value=self.Kp, pow=5)
-        self.iSlider = CustomSlider(min=0, max=1, orientation=Qt.Orientation.Horizontal, value=self.Ki, pow=5)
-        self.dSlider = CustomSlider(min=-1, max=1, orientation=Qt.Orientation.Horizontal, value=self.Kd, pow=5)
+        self.pSlider = CustomSlider(min=0, max=.01, orientation=Qt.Orientation.Horizontal, value=self.Kp, pow=7)
+        self.iSlider = CustomSlider(min=0, max=1, orientation=Qt.Orientation.Horizontal, value=self.Ki, pow=7)
+        self.dSlider = CustomSlider(min=-1, max=1, orientation=Qt.Orientation.Horizontal, value=self.Kd, pow=7)
         sliderLayout.addWidget(self.pSlider)
         sliderLayout.addWidget(self.iSlider)
         sliderLayout.addWidget(self.dSlider)
@@ -206,9 +206,9 @@ class PullWindow(QMainWindow):
         self.w = 100
         self.iterations = 50
 
-        self.Kp = .01
-        self.Ki = 0
-        self.Kd = 0
+        self.Kp = .0011
+        self.Ki = .05
+        self.Kd = -.02
 
         self.ended=False
 
