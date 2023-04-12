@@ -297,25 +297,6 @@ class PullWindow(QMainWindow):
         sliderLayout.addLayout(labelLayout)
         sliderLayout.addLayout(sliderSubLayout)
         sliderLayout.addLayout(inputLayout)
-        
-
-
-        # vLayout = QHBoxLayout()
-        # vLayout.addWidget(QLabel('v '))
-        # vLayout.addWidget(self.vSlider)
-        # vLayout.addWidget(self.vInput)
-        # sliderLayout.addLayout(vLayout)
-        # aLayout = QHBoxLayout()
-        # aLayout.addWidget(QLabel('a '))
-        # aLayout.addWidget(self.aSlider)
-        # aLayout.addWidget(self.aInput)
-        # sliderLayout.addLayout(aLayout)
-        # TLayout = QHBoxLayout()
-        # TLayout.addWidget(QLabel('T0'))
-        # TLayout.addWidget(self.TSlider)
-        # TLayout.addWidget(self.TInput)
-        # sliderLayout.addLayout(TLayout)
-        
 
         self.wDial = QDial(minimum=50, maximum=10000, value=self.w, singleStep=.5)
         self.wInput = QLineEdit(str(self.w))
@@ -481,7 +462,7 @@ window.tensButton.pressed.connect(pullCall)
 @asyncSlot()
 async def mts():
     window.mtsButton.setEnabled(False)
-    await pl.ms.MoveToStart()
+    await pl.ms.MoveToStart(moveM=True)
     window.mtsButton.setEnabled(True)
 
 async def plStart():
