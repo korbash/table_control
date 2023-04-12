@@ -184,9 +184,9 @@ class Motor():
         await self.WaitWhileInMotion(waitForTrue=np.abs(dp) > self.dp_thr)
         return flag
 
-    async def MoveTo(self, x, v=v_norm, a=a_norm):
+    async def MoveTo(self, x, v=v_norm, a=a_norm, tolerance=.05):
         x0 = self.Getposition(memory=False, motorNotMove=True)
-        if np.abs(x0-x) < 0.05:
+        if np.abs(x0-x) < tolerance:
             return
         await self.WaitWhileInMotion(waitForTrue=False)
         v = self.chekV_A(v, a, x - x0)

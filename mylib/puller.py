@@ -202,7 +202,7 @@ class Puller():
                 print('w= ', w, ', dw= ', w - wide, ', dx=  ', dx)
             yield w
             await self.ms.motorR.MoveTo(
-                    self.ms.motorR.Getposition(analitic=True) - dx, a=1)
+                    self.ms.motorR.Getposition(analitic=True) - dx, a=1, tolerance=0)
             while self.ms.motorR.IsInMotion():
                 pass
             Time.sleep(0.1)
