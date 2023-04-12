@@ -185,8 +185,10 @@ class Motor():
         return flag
 
     async def MoveTo(self, x, v=v_norm, a=a_norm):
-        await self.WaitWhileInMotion(waitForTrue=False)
         x0 = self.Getposition(memory=False, motorNotMove=True)
+        if np.abs(x0-x) < 0.05:
+            return
+        await self.WaitWhileInMotion(waitForTrue=False)
         v = self.chekV_A(v, a, x - x0)
         self.Set_velocity(v, a)
         flag = self.Move_to_iner(x)
