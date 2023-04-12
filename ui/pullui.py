@@ -204,6 +204,8 @@ class PullWindow(QMainWindow):
         self.a = 5
         self.T0 = 10
         self.w = 100
+        self.burnerH = 0
+        self.dhKof = 1
         self.iterations = 50
 
         self.Kp = .0011
@@ -218,7 +220,7 @@ class PullWindow(QMainWindow):
         progressLayout = QHBoxLayout()
         plotLayout = QVBoxLayout()
         settingsLayout = QHBoxLayout()
-        sliderLayout = QVBoxLayout()
+        sliderLayout = QHBoxLayout()
         subsettingsLayout = QVBoxLayout()
 
         mainLayout.addLayout(progressLayout)
@@ -265,21 +267,54 @@ class PullWindow(QMainWindow):
         self.TInput = QLineEdit(str(self.T0))
         self.TInput.setFixedWidth(100)
         self.TInput.setValidator(getDoubleValidator())
-        vLayout = QHBoxLayout()
-        vLayout.addWidget(QLabel('v '))
-        vLayout.addWidget(self.vSlider)
-        vLayout.addWidget(self.vInput)
-        sliderLayout.addLayout(vLayout)
-        aLayout = QHBoxLayout()
-        aLayout.addWidget(QLabel('a '))
-        aLayout.addWidget(self.aSlider)
-        aLayout.addWidget(self.aInput)
-        sliderLayout.addLayout(aLayout)
-        TLayout = QHBoxLayout()
-        TLayout.addWidget(QLabel('T0'))
-        TLayout.addWidget(self.TSlider)
-        TLayout.addWidget(self.TInput)
-        sliderLayout.addLayout(TLayout)
+        self.bhSlider = CustomSlider(min=-10, max=2.5, orientation=Qt.Orientation.Horizontal, value=self.burnerH)
+        self.bhInput = QLineEdit(str(self.burnerH))
+        self.bhInput.setFixedWidth(100)
+        self.bhInput.setValidator(getDoubleValidator())
+        self.dhSlider = CustomSlider(min=0, max=3, orientation=Qt.Orientation.Horizontal, value=self.dhKof)
+        self.dhInput = QLineEdit(str(self.dhKof))
+        self.dhInput.setFixedWidth(100)
+        self.dhInput.setValidator(getDoubleValidator())
+
+        labelLayout = QVBoxLayout()
+        sliderSubLayout = QVBoxLayout()
+        inputLayout = QVBoxLayout()
+        labelLayout.addWidget(QLabel('v'))
+        sliderSubLayout.addWidget(self.vSlider)
+        inputLayout.addWidget(self.vInput)
+        labelLayout.addWidget(QLabel('a'))
+        sliderSubLayout.addWidget(self.aSlider)
+        inputLayout.addWidget(self.vInput)
+        labelLayout.addWidget(QLabel('T0'))
+        sliderSubLayout.addWidget(self.TSlider)
+        inputLayout.addWidget(self.TInput)
+        labelLayout.addWidget(QLabel('bH'))
+        sliderSubLayout.addWidget(self.bhSlider)
+        inputLayout.addWidget(self.bhInput)
+        labelLayout.addWidget(QLabel('dh'))
+        sliderSubLayout.addWidget(self.dhSlider)
+        inputLayout.addWidget(self.dhInput)
+        sliderLayout.addLayout(labelLayout)
+        sliderLayout.addLayout(sliderSubLayout)
+        sliderLayout.addLayout(inputLayout)
+        
+
+
+        # vLayout = QHBoxLayout()
+        # vLayout.addWidget(QLabel('v '))
+        # vLayout.addWidget(self.vSlider)
+        # vLayout.addWidget(self.vInput)
+        # sliderLayout.addLayout(vLayout)
+        # aLayout = QHBoxLayout()
+        # aLayout.addWidget(QLabel('a '))
+        # aLayout.addWidget(self.aSlider)
+        # aLayout.addWidget(self.aInput)
+        # sliderLayout.addLayout(aLayout)
+        # TLayout = QHBoxLayout()
+        # TLayout.addWidget(QLabel('T0'))
+        # TLayout.addWidget(self.TSlider)
+        # TLayout.addWidget(self.TInput)
+        # sliderLayout.addLayout(TLayout)
         
 
         self.wDial = QDial(minimum=50, maximum=10000, value=self.w, singleStep=.5)
@@ -299,11 +334,15 @@ class PullWindow(QMainWindow):
         self.vSlider.doubleValueChanged.connect(self.onNewVSlider)
         self.aSlider.doubleValueChanged.connect(self.onNewASlider)
         self.TSlider.doubleValueChanged.connect(self.onNewTSlider)
+        self.bhSlider.doubleValueChanged.connect(self.onNewbh)
+        self.dhSlider.doubleValueChanged.connect(self.onNewdh)
         self.wDial.valueChanged.connect(self.onNewWDial)
         self.vInput.returnPressed.connect(self.onNewVSlider)
         self.aInput.returnPressed.connect(self.onNewASlider)
         self.TInput.returnPressed.connect(self.onNewTSlider)
         self.wInput.returnPressed.connect(self.onNewWDial)
+        self.bhInput.returnPressed.connect(self.onNewbh)
+        self.dhInput.returnPressed.connect(self.onNewdh)
 
         self.PIDButton.pressed.connect(self.callPIDSettings)
 
@@ -364,6 +403,20 @@ class PullWindow(QMainWindow):
             w = float(self.wInput.text())
             self.wDial.setValue(w)
         self.w = w
+    def onNewbh(self, burnerH=None):
+        if burnerH is not None:
+            self.bhInput.setText(str(burnerH))
+        else:
+            burnerH = float(self.bhInput.text())
+            self.bhSlider.setValue(burnerH)
+        self.burnerH = burnerH
+    def onNewdh(self, dhKof=None):
+        if dhKof is not None:
+            self.dhInput.setText(str(dhKof))
+        else:
+            dhKof = float(self.dhInput.text())
+            self.dhSlider.setValue(dhKof)
+        self.dhKof = dhKof
     def onNewIterations(self, num):
         if len(num) == 0:
             return

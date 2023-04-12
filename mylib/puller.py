@@ -73,7 +73,7 @@ class Puller():
         self.MotorsControlStart()
         self.tasks = []
         self.tasks.append(asyncio.create_task(self.PulMotorsControl(), name='motorsLR'))
-        # self.tasks.append(asyncio.create_task(self.FireMove(), name='motorM'))
+        self.tasks.append(asyncio.create_task(self.FireMove(), name='motorM'))
         self.tasks.append(asyncio.create_task(self.Read()))
         self.tasks.append(asyncio.create_task(self.plotter()))
 
@@ -201,7 +201,6 @@ class Puller():
             if not quiet:
                 print('w= ', w, ', dw= ', w - wide, ', dx=  ', dx)
             yield w
-            # TODO чота сделать
             await self.ms.motorR.MoveTo(
                     self.ms.motorR.Getposition(analitic=True) - dx, a=1)
             while self.ms.motorR.IsInMotion():
@@ -266,7 +265,7 @@ class Puller():
 
     async def FireMove(self):
         while True:
-            await self.ms.motorM.MoveTo(self.ms.x0 + self.sl.Sl['molibdenH'])
+            await self.ms.motorM.MoveTo(self.ms.x0 + self.win.burnerH)
 
     def Test(self):
         print('tg test:')
