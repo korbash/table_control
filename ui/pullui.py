@@ -284,7 +284,7 @@ class PullWindow(QMainWindow):
         inputLayout.addWidget(self.vInput)
         labelLayout.addWidget(QLabel('a'))
         sliderSubLayout.addWidget(self.aSlider)
-        inputLayout.addWidget(self.vInput)
+        inputLayout.addWidget(self.aInput)
         labelLayout.addWidget(QLabel('T0'))
         sliderSubLayout.addWidget(self.TSlider)
         inputLayout.addWidget(self.TInput)
