@@ -264,8 +264,11 @@ class Puller():
         self.win.stopButton.setEnabled(False)
 
     async def FireMove(self):
+        await self.ms.motorM.MoveTo(self.ms.x0 + self.win.burnerH)
         while True:
-            await self.ms.motorM.MoveTo(self.ms.x0 + self.win.burnerH)
+            bh = self.win.burnerH + self.ms.x0
+            vFon = self.ms.VforFireMove(bh)
+            await self.ms.PulFireMove(aEnd=20, vEnd=self.win.dhKof, vFon=vFon)
             await asyncio.sleep(0)
 
     def Test(self):
