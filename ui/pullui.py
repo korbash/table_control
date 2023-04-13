@@ -193,6 +193,7 @@ class TensWindow(QDialog):
             x.append(len(x))
             y.append(i)
             self.tensPlot.changeLine(x, y, 'tension')
+            await asyncio.sleep(.01)
         self.setButton.setEnabled(True)
 
 class PullWindow(QMainWindow):
