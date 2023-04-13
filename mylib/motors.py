@@ -175,7 +175,9 @@ class Motor():
         while self.IsInMotion():
             await asyncio.sleep(0)
 
-    async def Move(self, dp, v=v_norm, a=a_norm):
+    async def Move(self, dp, v=v_norm, a=a_norm, tolerance=.05):
+        if np.abs(dp) < tolerance:
+            return
         await self.WaitWhileInMotion(waitForTrue=False)
         p = self.Getposition(memory=False, motorNotMove=True)
         v = self.chekV_A(v, a, dp)
@@ -654,8 +656,10 @@ class MotorSystem():
 
     async def PulFireMove(self, aEnd, vEnd, vFon):
         # t0 = Time.time()
+        print('Pre await')
         while self.motorM.IsInMotion():
             await asyncio.sleep(0)
+        print("asdfgsd")
         t = Time.time()
         # tp = np.array([self.tStart, self.tStart1, self.tFinish1, self.tFinish])
         # tp2 = tp[t0 - tp > 0]
@@ -688,13 +692,13 @@ class MotorSystem():
         hMax *= 0.9
         hG *= 0.9
         if hMax < abs(hG):
-            self.motorM.Move(math.copysign(hMax, hG), v=Motor.v_max, a=aEnd)
+            await self.motorM.Move(math.copysign(hMax, hG), v=Motor.v_max, a=aEnd)
         else:
             v = self.motorM.chekV_A(v=1000, a=aEnd, x=htr)
             dh = htr - abs(hG)
             dv = math.sqrt(dh / htr) * v
             # print(dt, htr, v, dv)
-            self.motorM.Move(hG, v=v - dv, a=aEnd)
+            await self.motorM.Move(hG, v=v - dv, a=aEnd)
 
     def VforFireMove(self, goal, alf=6, Vmin=0.1, Vmax=10):
         h = goal - self.hFire
