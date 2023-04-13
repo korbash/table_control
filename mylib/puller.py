@@ -266,7 +266,7 @@ class Puller():
     async def FireMove(self):
         while True:
             await self.ms.motorM.MoveTo(self.ms.x0 + self.win.burnerH)
-            await asyncio.wait(0)
+            await asyncio.sleep(0)
 
     def Test(self):
         print('tg test:')
