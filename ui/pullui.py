@@ -462,7 +462,7 @@ window.tensButton.pressed.connect(pullCall)
 @asyncSlot()
 async def mts():
     window.mtsButton.setEnabled(False)
-    await pl.ms.MoveToStart(moveM=True)
+    await pl.ms.MoveToStart(moveM=True, zapas=10)
     window.mtsButton.setEnabled(True)
 
 async def plStart():
