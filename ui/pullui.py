@@ -209,6 +209,9 @@ class PullWindow(QMainWindow):
         self.dhKof = 1
         self.iterations = 50
 
+        self.rw = 15
+        self.lw = 25
+
         self.Kp = .0011
         self.Ki = .05
         self.Kd = -.02
@@ -236,18 +239,14 @@ class PullWindow(QMainWindow):
         self.mtsButton = QPushButton('MTS')
         self.tensButton = QPushButton('Pull')
         self.progressBar = QProgressBar()
-        self.progressBar.setMaximum(self.iterations)
-        self.progressText = QLabel('0/')
-        self.interationsInput = QLineEdit(str(self.iterations))
-        self.interationsInput.setValidator(QIntValidator())
-        self.interationsInput.setFixedWidth(50)
+        self.progressBar.setMaximum(100)
+        self.progressText = QLabel(f'{125/2}→{self.rw}')
         self.stopButton = QPushButton('START')
         progressLayout.addWidget(self.zeroButton)
         progressLayout.addWidget(self.mtsButton)
         progressLayout.addWidget(self.tensButton)
         progressLayout.addWidget(self.progressBar)
         progressLayout.addWidget(self.progressText)
-        progressLayout.addWidget(self.interationsInput)
         progressLayout.addWidget(self.stopButton)
 
         self.powerPlot = MplCanvas(label='Power')
@@ -323,7 +322,6 @@ class PullWindow(QMainWindow):
         container.setLayout(mainLayout)
         self.setCentralWidget(container)
 
-        self.interationsInput.textChanged.connect(self.onNewIterations)
         self.vSlider.doubleValueChanged.connect(self.onNewVSlider)
         self.aSlider.doubleValueChanged.connect(self.onNewASlider)
         self.TSlider.doubleValueChanged.connect(self.onNewTSlider)
@@ -339,10 +337,6 @@ class PullWindow(QMainWindow):
 
         self.PIDButton.pressed.connect(self.callPIDSettings)
         self.burnerButton.pressed.connect(self.changeBurnerPos)
-
-    def setProgress(self, progress):
-        self.progressBar.setValue(progress)
-        self.progressText.setText(f'{progress}/')
 
     def updateAllPlots(self, data):
         if not 'time' in data:
@@ -368,9 +362,14 @@ class PullWindow(QMainWindow):
             self.dvInd.setText(f"dv={data['dv'].iloc[-1]}")
         if 'x' in data:
             self.xInd.setText(f"x={data['x'].iloc[-1]}") 
+        print('plots updated')
+
     
-    def updateLIndicator(self, L):
+    def updateIndicators(self, L, R):
         self.LInd.setText(f"L={L}")
+        self.progressText.setText(f'{R} → {self.rw}')
+        self.progressBar.setValue(round(100 - (R - self.rw) / (62 - self.rw) * 100))
+        print(f'inds updated{round(100 - (R - self.rw) / (62 - self.rw) * 100)}')
 
         
     def callPIDSettings(self):
@@ -422,11 +421,7 @@ class PullWindow(QMainWindow):
             dhKof = float(self.dhInput.text())
             self.dhSlider.setValue(dhKof)
         self.dhKof = dhKof
-    def onNewIterations(self, num):
-        if len(num) == 0:
-            return
-        self.iterations = int(num)
-        self.progressBar.setMaximum(num) 
+
     def onNewPIDCoefs(self, Kp, Ki, Kd):
         self.Kp = Kp / 100
         self.Ki = Ki
@@ -502,7 +497,6 @@ async def plStart():
 async def start():
     window.stopButton.setText('STOP')
     window.stopButton.pressed.connect(end)
-    window.interationsInput.setEnabled(False)
     pl.ms.x0 = 80
     asyncio.create_task(plStart())
     if window.saveCheckBox.isChecked():

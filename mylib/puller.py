@@ -103,7 +103,8 @@ class Puller():
             # print('plotted')
             w = int(self.win.w)
             self.win.updateAllPlots(self.data.iloc[-w:])
-            self.win.updateLIndicator(self.ms.L_x(self.data['x'].iloc[-1]))
+            x = self.data['x'].iloc[-1]
+            self.win.updateIndicators(self.ms.L_x(x), self.ms.R_x(x))
             # self.pd.Apdate(for_all=self.data.iloc[-w:])
             # push_notebook()
 
@@ -259,7 +260,6 @@ class Puller():
                                               self.stFl, self.sg.New_tact)
             if self.stFl:
                 break
-            self.win.setProgress(i + 1)
         self.stFl = True
         self.win.stopButton.setEnabled(False)
 
