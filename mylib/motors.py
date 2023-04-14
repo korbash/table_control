@@ -65,7 +65,7 @@ class Motor():
     a_norm = 5
     v_max = 30
     a_max = 30
-    dp_thr = 0.025
+    dp_thr = 0.05
 
     def __init__(self, mot, motor_name, p_max=99, blocking=False, dp_thr=dp_thr):
 
@@ -175,7 +175,7 @@ class Motor():
         while self.IsInMotion():
             await asyncio.sleep(0)
 
-    async def Move(self, dp, v=v_norm, a=a_norm, tolerance=.05):
+    async def Move(self, dp, v=v_norm, a=a_norm, tolerance=0.5):
         if np.abs(dp) < tolerance:
             return
         await self.WaitWhileInMotion(waitForTrue=False)
@@ -184,9 +184,10 @@ class Motor():
         self.Set_velocity(v, a)
         flag = self.Move_to_iner(p + dp)
         await self.WaitWhileInMotion(waitForTrue=np.abs(dp) > self.dp_thr)
+
         return flag
 
-    async def MoveTo(self, x, v=v_norm, a=a_norm, tolerance=.05):
+    async def MoveTo(self, x, v=v_norm, a=a_norm, tolerance=0.5):
         x0 = self.Getposition(memory=False, motorNotMove=True)
         if np.abs(x0-x) < tolerance:
             return
@@ -656,10 +657,8 @@ class MotorSystem():
 
     async def PulFireMove(self, aEnd, vEnd, vFon):
         # t0 = Time.time()
-        print('Pre await')
         while self.motorM.IsInMotion():
             await asyncio.sleep(0)
-        print("asdfgsd")
         t = Time.time()
         # tp = np.array([self.tStart, self.tStart1, self.tFinish1, self.tFinish])
         # tp2 = tp[t0 - tp > 0]
@@ -685,7 +684,7 @@ class MotorSystem():
             h = self.motorM.CalculateMottonDist(dt, v=vEnd, a=aEnd)
             hG = self.hFire - h - self.motorM.Getposition()
         else:
-            print('слишком поздний вызов PulFireMove')
+            # print('слишком поздний вызов PulFireMove')
             return
         htr = self.motorM.CalculateMottonDist(dt, v=1000, a=aEnd)
         hMax = self.motorM.CalculateMottonDist(dt, v=Motor.v_max, a=aEnd)
