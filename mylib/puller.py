@@ -103,6 +103,7 @@ class Puller():
             # print('plotted')
             w = int(self.win.w)
             self.win.updateAllPlots(self.data.iloc[-w:])
+            self.win.updateLIndicator(self.ms.L_x(self.data['x'].iloc[-1]))
             # self.pd.Apdate(for_all=self.data.iloc[-w:])
             # push_notebook()
 

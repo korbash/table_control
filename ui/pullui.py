@@ -222,7 +222,7 @@ class PullWindow(QMainWindow):
         progressLayout = QHBoxLayout()
         plotLayout = QVBoxLayout()
         settingsLayout = QHBoxLayout()
-        sliderLayout = QHBoxLayout()
+        sliderLayout = QVBoxLayout()
         subsettingsLayout = QVBoxLayout()
 
         mainLayout.addLayout(progressLayout)
@@ -296,6 +296,15 @@ class PullWindow(QMainWindow):
         sliderSubLayout.addWidget(self.dhInput, 4, 2)
         sliderLayout.addLayout(sliderSubLayout)
 
+        indicatorsLayout = QVBoxLayout()
+        self.dvInd = QLabel('dv=')
+        self.xInd = QLabel('x=')
+        self.LInd = QLabel('L=')
+        indicatorsLayout.addWidget(self.dvInd)
+        indicatorsLayout.addWidget(self.xInd)
+        indicatorsLayout.addWidget(self.LInd)
+        sliderLayout.addLayout(indicatorsLayout)
+
         self.saveCheckBox = QCheckBox('Save to MongoDB')
         self.wDial = QDial(minimum=50, maximum=10000, value=self.w, singleStep=.5)
         self.wDial.setFixedHeight(100)
@@ -346,12 +355,23 @@ class PullWindow(QMainWindow):
             self.tensionPlot.changeLine(data['time'], data['tensionWgl'], 'tensionWgl')
         if 'tensionEXPgl' in data:
             self.tensionPlot.changeLine(data['time'], data['tensionEXPgl'], 'tensionEXPgl')
+        if 'tensionGoal' in data:
+            self.tensionPlot.changeLine(data['time'], data['tensionGoal'], 'tensionGoal')
         if 'motorL' in data:
             self.motionPlot.changeLine(data['time'], data['motorL'], 'motorL') 
         if 'motorR' in data:
             self.motionPlot.changeLine(data['time'], data['motorR'], 'motorR')  
         if 'motorM' in data:
             self.motionPlot.changeLine(data['time'], data['motorM'], 'motorM')  
+        # indicators
+        if 'dv' in data:
+            self.dvInd.setText(f"dv={data['dv'].iloc[-1]}")
+        if 'x' in data:
+            self.xInd.setText(f"x={data['x'].iloc[-1]}") 
+    
+    def updateLIndicator(self, L):
+        self.LInd.setText(f"L={L}")
+
         
     def callPIDSettings(self):
         PIDs = PIDWindow(self.Kp, self.Ki, self.Kd)
