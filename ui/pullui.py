@@ -4,7 +4,7 @@ import asyncio
 
 path += ['..']
 from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QMainWindow, QVBoxLayout, QHBoxLayout, QLabel,\
-     QSlider, QDial, QProgressBar, QLineEdit, QDialog, QDialogButtonBox, QGridLayout
+     QSlider, QDial, QProgressBar, QLineEdit, QDialog, QDialogButtonBox, QGridLayout, QCheckBox
 from PyQt6.QtCore import QSize, Qt, pyqtSignal, QLocale
 from PyQt6.QtGui import QIntValidator, QDoubleValidator
 from qasync import QEventLoop, asyncSlot
@@ -296,11 +296,13 @@ class PullWindow(QMainWindow):
         sliderSubLayout.addWidget(self.dhInput, 4, 2)
         sliderLayout.addLayout(sliderSubLayout)
 
+        self.saveCheckBox = QCheckBox('Save to MongoDB')
         self.wDial = QDial(minimum=50, maximum=10000, value=self.w, singleStep=.5)
         self.wDial.setFixedHeight(100)
         self.wInput = QLineEdit(str(self.w))
         self.wInput.setValidator(QIntValidator())
         self.PIDButton = QPushButton('PID settings')
+        subsettingsLayout.addWidget(self.saveCheckBox)
         subsettingsLayout.addWidget(QLabel('window'))
         subsettingsLayout.addWidget(self.wDial)
         subsettingsLayout.addWidget(self.wInput)
@@ -483,6 +485,8 @@ async def start():
     window.interationsInput.setEnabled(False)
     pl.ms.x0 = 80
     asyncio.create_task(plStart())
+    if window.saveCheckBox.isChecked():
+        pl.Save()
 
 @asyncSlot()
 async def end():
