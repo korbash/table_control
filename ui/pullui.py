@@ -207,7 +207,6 @@ class PullWindow(QMainWindow):
         self.w = 100
         self.burnerH = 0
         self.dhKof = 1
-        self.iterations = 50
 
         self.rw = 15
         self.lw = 25

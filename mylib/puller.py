@@ -229,8 +229,7 @@ class Puller():
         self.ms.ResetBeforePull()
 
     async def PulMotorsControl(self):
-        N = int(self.win.iterations)
-        for i in range(N):
+        while True:
             self.dtsm.append(Time.time())
             # self.stFl = self.sl.BtnFl['end']
             self.stFl = self.win.ended
