@@ -214,6 +214,7 @@ class PullWindow(QMainWindow):
         self.Kd = -.02
 
         self.ended=False
+        self.burnPosFl = False
 
         # layouts
         mainLayout = QVBoxLayout()
@@ -300,6 +301,7 @@ class PullWindow(QMainWindow):
         sliderLayout.addLayout(inputLayout)
 
         self.wDial = QDial(minimum=50, maximum=10000, value=self.w, singleStep=.5)
+        self.wDial.setFixedHeight(100)
         self.wInput = QLineEdit(str(self.w))
         self.wInput.setValidator(QIntValidator())
         self.PIDButton = QPushButton('PID settings')
@@ -308,6 +310,8 @@ class PullWindow(QMainWindow):
         subsettingsLayout.addWidget(self.wInput)
         subsettingsLayout.addWidget(self.PIDButton)
 
+        self.burnerButton = QPushButton('Move Burner (up)')
+        subsettingsLayout.addWidget(self.burnerButton)
         container = QWidget()
         container.setLayout(mainLayout)
         self.setCentralWidget(container)
@@ -327,6 +331,7 @@ class PullWindow(QMainWindow):
         self.dhInput.returnPressed.connect(self.onNewdh)
 
         self.PIDButton.pressed.connect(self.callPIDSettings)
+        self.burnerButton.pressed.connect(self.changeBurnerPos)
 
     def setProgress(self, progress):
         self.progressBar.setValue(progress)
@@ -408,6 +413,11 @@ class PullWindow(QMainWindow):
         self.Kp = Kp / 100
         self.Ki = Ki
         self.Kd = Kd
+
+    def changeBurnerPos(self):
+        self.burnPosFl = not self.burnPosFl
+        self.burnerButton.setText('Move burner (down)' if self.burnPosFl else 'Move burner (up)')
+
     
 class ZeroDialog(QDialog):
     def __init__(self, val):

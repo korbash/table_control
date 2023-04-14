@@ -107,7 +107,6 @@ class Puller():
             # push_notebook()
 
     async def Read(self):
-        print('aaaa')
         while True:
             param = {}
             tSt = Time.time()
@@ -264,11 +263,12 @@ class Puller():
         self.win.stopButton.setEnabled(False)
 
     async def FireMove(self):
-        await self.ms.motorM.MoveTo(self.ms.x0 + self.win.burnerH)
         while True:
-            bh = self.win.burnerH + self.ms.x0
-            vFon = self.ms.VforFireMove(bh)
-            await self.ms.PulFireMove(aEnd=20, vEnd=self.win.dhKof, vFon=vFon)
+            bh = self.win.burnerH + self.ms.x0 if self.win.burnPosFl else 0
+            await self.ms.motorM.MoveTo(bh)
+            if self.win.burnPosFl:
+                vFon = self.ms.VforFireMove(bh)
+                await self.ms.PulFireMove(aEnd=20, vEnd=self.win.dhKof, vFon=vFon)
             await asyncio.sleep(0)
 
     def Test(self):
