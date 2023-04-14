@@ -4,7 +4,7 @@ import asyncio
 
 path += ['..']
 from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QMainWindow, QVBoxLayout, QHBoxLayout, QLabel,\
-     QSlider, QTextEdit, QDial, QProgressBar, QLineEdit, QDialog, QDialogButtonBox
+     QSlider, QDial, QProgressBar, QLineEdit, QDialog, QDialogButtonBox, QGridLayout
 from PyQt6.QtCore import QSize, Qt, pyqtSignal, QLocale
 from PyQt6.QtGui import QIntValidator, QDoubleValidator
 from qasync import QEventLoop, asyncSlot
@@ -278,27 +278,23 @@ class PullWindow(QMainWindow):
         self.dhInput.setFixedWidth(100)
         self.dhInput.setValidator(getDoubleValidator())
 
-        labelLayout = QVBoxLayout()
-        sliderSubLayout = QVBoxLayout()
-        inputLayout = QVBoxLayout()
-        labelLayout.addWidget(QLabel('v'))
-        sliderSubLayout.addWidget(self.vSlider)
-        inputLayout.addWidget(self.vInput)
-        labelLayout.addWidget(QLabel('a'))
-        sliderSubLayout.addWidget(self.aSlider)
-        inputLayout.addWidget(self.aInput)
-        labelLayout.addWidget(QLabel('T0'))
-        sliderSubLayout.addWidget(self.TSlider)
-        inputLayout.addWidget(self.TInput)
-        labelLayout.addWidget(QLabel('bH'))
-        sliderSubLayout.addWidget(self.bhSlider)
-        inputLayout.addWidget(self.bhInput)
-        labelLayout.addWidget(QLabel('dh'))
-        sliderSubLayout.addWidget(self.dhSlider)
-        inputLayout.addWidget(self.dhInput)
-        sliderLayout.addLayout(labelLayout)
+        sliderSubLayout = QGridLayout()
+        sliderSubLayout.addWidget(QLabel('v'), 0, 0)
+        sliderSubLayout.addWidget(self.vSlider, 0, 1)
+        sliderSubLayout.addWidget(self.vInput, 0, 2)
+        sliderSubLayout.addWidget(QLabel('a'), 1, 0)
+        sliderSubLayout.addWidget(self.aSlider, 1, 1)
+        sliderSubLayout.addWidget(self.aInput, 1, 2)
+        sliderSubLayout.addWidget(QLabel('T0'), 2, 0)
+        sliderSubLayout.addWidget(self.TSlider, 2, 1)
+        sliderSubLayout.addWidget(self.TInput, 2, 2)
+        sliderSubLayout.addWidget(QLabel('bH'), 3, 0)
+        sliderSubLayout.addWidget(self.bhSlider, 3, 1)
+        sliderSubLayout.addWidget(self.bhInput, 3, 2)
+        sliderSubLayout.addWidget(QLabel('dh'), 4, 0)
+        sliderSubLayout.addWidget(self.dhSlider, 4, 1)
+        sliderSubLayout.addWidget(self.dhInput, 4, 2)
         sliderLayout.addLayout(sliderSubLayout)
-        sliderLayout.addLayout(inputLayout)
 
         self.wDial = QDial(minimum=50, maximum=10000, value=self.w, singleStep=.5)
         self.wDial.setFixedHeight(100)
