@@ -245,7 +245,7 @@ class Puller():
             Kd = self.win.Kd
             # alf = self.sl.Sl['alf']
             x, L = self.ms.calcX_L()
-            r0 = self.ms.funR_x(x)
+            r0 = self.ms.funR_x(0)
             # r_max = self.ms.funR_x(self.ms.xMax)
             r = self.ms.funR_x(x)
             t = T * r**2 / r0**2
