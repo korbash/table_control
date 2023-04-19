@@ -81,6 +81,7 @@ class Puller():
         await self.tasks[0]
         for task in self.tasks:
             task.cancel()
+        await self.ms.motorM.MoveTo(0)
         print(f'mean reading time = {np.mean(self.dts)}')
         print(f'max reading time = {np.max(self.dts)}')
 
