@@ -361,14 +361,12 @@ class PullWindow(QMainWindow):
             self.dvInd.setText(f"dv={data['dv'].iloc[-1]}")
         if 'x' in data:
             self.xInd.setText(f"x={data['x'].iloc[-1]}") 
-        print('plots updated')
 
     
     def updateIndicators(self, L, R):
         self.LInd.setText(f"L={L}")
         self.progressText.setText(f'{R} → {self.rw}')
         self.progressBar.setValue(round(100 - (R - self.rw) / (62 - self.rw) * 100))
-        print(f'inds updated{round(100 - (R - self.rw) / (62 - self.rw) * 100)}')
 
         
     def callPIDSettings(self):
