@@ -460,7 +460,7 @@ asyncio.set_event_loop(loop)
 window = PullWindow()
 window.show()
 
-pl = Puller()
+pl = Puller(lw=window.lw, rw=window.rw)
 pl.win = window
 
 def zeroTs():

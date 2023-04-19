@@ -341,7 +341,7 @@ class Motor():
 class MotorSystem():
     stopFlag = False
 
-    def __init__(self, simulate=False, simulator=None, blocking=False):
+    def __init__(self, simulate=False, simulator=None, blocking=False, lw=25, rw=15):
         if simulate:
             motL = simulator.motorL
             motR = simulator.motorR
@@ -382,11 +382,10 @@ class MotorSystem():
             description="Forgot motion")
         self.forgotButton.on_click(self.ForgotMotion)
 
-        self.funL_x, self.funR_x, self.xMax = caunter(lw=23,
-                                                      rw=10,
+        self.funL_x, self.funR_x, self.xMax = caunter(lw=lw,
+                                                      rw=rw,
                                                       Ltorch=1,
-                                                      thetasdiv=1)
-
+                                                      thetasdiv=1) 
         def f(fun, xMax, x):
 
             if x < 0:
