@@ -495,7 +495,7 @@ async def start():
     window.stopButton.setText('STOP')
     window.stopButton.pressed.connect(end)
     pl.ms.x0 = 80
-    await asyncio.create_task(plStart())
+    await plStart()
     if window.saveCheckBox.isChecked():
         pl.Save()
 
