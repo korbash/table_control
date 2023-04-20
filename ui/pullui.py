@@ -55,13 +55,13 @@ class MplCanvas(FigureCanvasQTAgg):
         super(MplCanvas, self).__init__(fig)
         if not label is None:
             self.axes.set_title(label)
+        self.axes.grid()
         self.lines = dict()
     
     def addPlot(self, x, y, label, legend=False):
         [self.lines[label]] = self.axes.plot(x, y, label=label)
         if legend:
             self.axes.legend()
-        self.axes.grid()
 
     def changeLine(self, x, y, label):
         if len(x) > len(y):
