@@ -232,7 +232,7 @@ class Motor():
     def Start(self):
         self.stopFlag = False
         # print("start ",self.name,"  ", self.saveX,"  ", self.saveV,"  ", self.saveA)
-        self.MoveTo(self.saveX, self.saveV, self.saveA)
+        # self.MoveTo(self.saveX, self.saveV, self.saveA)
 
     def FogotMotion(self, analitic=False, memory=False):
         # print("FogotMotion xaxa vsem meshau", self.Getposition(analitic=analitic, memory=False))
