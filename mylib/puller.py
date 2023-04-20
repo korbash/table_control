@@ -36,9 +36,9 @@ class Puller():
             Time.sleep(0.001)
             pm = dr.powerMeter()
             Time.sleep(0.001)
-        self.tg = ReadingDevise(tg, 'tension', weightCoef=1/0.5652633)
+        self.tg = ReadingDevice(tg, 'tension', weightCoef=1/0.5652633)
         Time.sleep(0.001)
-        self.pm = ReadingDevise(pm, 'power', weightCoef=1000)
+        self.pm = ReadingDevice(pm, 'power', weightCoef=1000)
         self.ms = MotorSystem(simulate=simulate,
                               simulator=self.sim,
                               blocking=blocking, lw=lw, rw=rw)
@@ -72,7 +72,7 @@ class Puller():
         self.Clear()
         self.MotorsControlStart()
         self.tasks = []
-        self.tasks.append(asyncio.create_task(self.PulMotorsControl(), name='motorsLR'))
+        self.tasks.append(asyncio.create_task(self.PullMotorsControl(), name='motorsLR'))
         self.tasks.append(asyncio.create_task(self.FireMove(), name='motorM'))
         self.tasks.append(asyncio.create_task(self.Read()))
         self.tasks.append(asyncio.create_task(self.plotter()))
@@ -86,9 +86,9 @@ class Puller():
         print(f'max reading time = {np.max(self.dts)}')
 
     def Save(self):
-        save_data(self.data, name='pull_resalts.csv')
+        save_data(self.data, name='pull_results.csv')
         ex.run()
-        ex.add_artifact(str(main_path / 'data' / 'pull_resalts.csv'))
+        ex.add_artifact(str(main_path / 'data' / 'pull_results.csv'))
 
     def Clear(self):
         self.data = pd.DataFrame(columns=[
@@ -229,7 +229,7 @@ class Puller():
         self.stFl = False
         self.ms.ResetBeforePull()
 
-    async def PulMotorsControl(self):
+    async def PullMotorsControl(self):
         while True:
             self.dtsm.append(Time.time())
             # self.stFl = self.sl.BtnFl['end']

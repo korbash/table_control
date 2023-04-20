@@ -11,10 +11,10 @@ import ipywidgets
 from IPython.display import display
 import PySimpleGUI as sg
 from .utilities import *
-from . import driwers as dr
+from . import drivers as dr
 
 
-def caunter(r0=62.5, Ltorch=0.6, lw=30, rw=15, dr=1, thetasdiv=1):
+def counter(r0=62.5, Ltorch=0.6, lw=30, rw=15, dr=1, thetasdiv=1):
 
     def integr(y, x):
         inte = np.hstack((0, cumtrapz(y, x)))
@@ -180,7 +180,7 @@ class Motor():
             return
         await self.WaitWhileInMotion(waitForTrue=False)
         p = self.Getposition(memory=False, motorNotMove=True)
-        v = self.chekV_A(v, a, dp)
+        v = self.checkV_A(v, a, dp)
         self.Set_velocity(v, a)
         flag = self.Move_to_iner(p + dp)
         await self.WaitWhileInMotion(waitForTrue=np.abs(dp) > self.dp_thr)
@@ -192,7 +192,7 @@ class Motor():
         if np.abs(x0-x) < tolerance:
             return
         await self.WaitWhileInMotion(waitForTrue=False)
-        v = self.chekV_A(v, a, x - x0)
+        v = self.checkV_A(v, a, x - x0)
         self.Set_velocity(v, a)
         flag = self.Move_to_iner(x)
         await self.WaitWhileInMotion(waitForTrue=np.abs(self.Getposition() - x) > self.dp_thr)
@@ -246,19 +246,19 @@ class Motor():
         else:
             return 0
 
-    def CalculateMottonTime(self, x=None, v=None, a=None):  # исправить
+    def CalculateMotionTime(self, x=None, v=None, a=None):  # исправить
         if x == None:
             x = self.finX[-1] - self.finX[-2]
         if v == None:
             v = self.saveV
         if a == None:
             a = self.saveA
-        v = self.chekV_A(v, a, x)
+        v = self.checkV_A(v, a, x)
         a = abs(a)
         x = abs(x)
         return x / v + v / a
 
-    def CalculateMottonDist(self, t, v=None, a=None):
+    def CalculateMotionDist(self, t, v=None, a=None):
         if v == None:
             v = self.saveV
         if a == None:
@@ -266,7 +266,7 @@ class Motor():
         v = abs(v)
         a = abs(a)
         if t < 0:
-            print('CalculateMottonDist error t<0 t=', t)
+            print('CalculateMotionDist error t<0 t=', t)
             return 'error'
         if t > 2 * v / a:
             return (t - v / a) * v
@@ -294,7 +294,7 @@ class Motor():
             v = self.saveV
         if a == None:
             a = self.saveA
-        v = self.chekV_A(v, a, x)
+        v = self.checkV_A(v, a, x)
         v = abs(v) * np.sign(x)
         a = abs(a) * np.sign(x)
         # print('calcX_V_A_Is:',t=', t, 'x=', x, 'v=', v, 'a=', a)
@@ -303,7 +303,7 @@ class Motor():
             return x1, 0, 0, False
         elif t > x / v:
             # print('biig', x, v, t)
-            tMo = self.CalculateMottonTime(x, v, a)
+            tMo = self.CalculateMotionTime(x, v, a)
             dt = tMo - t
             dx = a * dt**2 / 2
             dv = a * dt
@@ -320,7 +320,7 @@ class Motor():
             dv = a * dt
             return x0 + dx, dv, a, True
 
-    def chekV_A(self, v=None, a=None, x=None):
+    def checkV_A(self, v=None, a=None, x=None):
         # print('chek_va ', x, '  ', type(self.finX[-1]), '  ', self.finX[-2])
         if v == None:
             v = self.saveV
@@ -382,7 +382,7 @@ class MotorSystem():
             description="Forgot motion")
         self.forgotButton.on_click(self.ForgotMotion)
 
-        self.funL_x, self.funR_x, self.xMax = caunter(lw=lw,
+        self.funL_x, self.funR_x, self.xMax = counter(lw=lw,
                                                       rw=rw,
                                                       Ltorch=1,
                                                       thetasdiv=1) 
@@ -486,7 +486,7 @@ class MotorSystem():
         # f.close()
         print('end')
 
-    def IsEndWasGood(self):
+    def WasEndGood(self):
         f = open(
             r"C:\Users\Fiber\Desktop\table_control_data\sistem\normalend.txt",
             'r')
@@ -550,12 +550,12 @@ class MotorSystem():
         vL = a * t - np.sqrt(a ** 2 * t ** 2 - 2 * a * (abs(L) - math.copysign(dx, L)))
         vR = a * t - np.sqrt(a ** 2 * t ** 2 - 2 * a * (abs(L) + math.copysign(dx, L)))
         '''
-        v = self.motorR.chekV_A(v, a, L)
+        v = self.motorR.checkV_A(v, a, L)
         coffL = (v - vdiff / 2) / v
         coffB = (v + vdiff / 2) / v
-        t = self.motorL.CalculateMottonTime(x=L, v=v, a=a)
-        sL = self.motorL.CalculateMottonDist(t=t, v=v * coffL, a=a * coffL)
-        sB = self.motorL.CalculateMottonDist(t=t, v=v * coffB, a=a * coffB)
+        t = self.motorL.CalculateMotionTime(x=L, v=v, a=a)
+        sL = self.motorL.CalculateMotionDist(t=t, v=v * coffL, a=a * coffL)
+        sB = self.motorL.CalculateMotionDist(t=t, v=v * coffB, a=a * coffB)
 
         while self.IsInMotion():
             await asyncio.sleep(0)
@@ -575,7 +575,7 @@ class MotorSystem():
         t1 = asyncio.create_task(self.motorL.WaitWhileInMotion())
         t2 = asyncio.create_task(self.motorR.WaitWhileInMotion())
         if tact_fun is not None:
-            tact_fun(Time.time() + self.motorL.CalculateMottonTime())
+            tact_fun(Time.time() + self.motorL.CalculateMotionTime())
         await asyncio.wait([t1, t2])
 
         if (flag < 0):
@@ -636,7 +636,7 @@ class MotorSystem():
 
         else:
             await self.Move(-L, v, a, 0, dt, tact_fun)
-            t = self.motorR.CalculateMottonTime(L, v, a)
+            t = self.motorR.CalculateMotionTime(L, v, a)
             Xnew = x + t * alf * v
             print("xMax=", self.xMax, "L_x(xMax)=",
                   self.L_x(self.xMax) / 2, "  x=", x, "  L=", L, 'xEnd=', Xnew,
@@ -647,7 +647,7 @@ class MotorSystem():
 
         self.tStart = Time.time()
         self.tStart1 = self.tStart + v / a
-        self.tFinish = self.tStart + self.motorR.CalculateMottonTime() * 0.95
+        self.tFinish = self.tStart + self.motorR.CalculateMotionTime() * 0.95
         self.tFinish1 = self.tFinish - v / a
         if self.tFinish1 < self.tStart1:
             self.tStart1 = self.tFinish1 = (self.tStart + self.tFinish) / 2
@@ -680,19 +680,19 @@ class MotorSystem():
             dt = self.tFinish - t
             # print('stop:', self.tFinish - self.tFinish1, dt)
             self.hFire += (self.tFinish - self.tFinish1) * vFon
-            h = self.motorM.CalculateMottonDist(dt, v=vEnd, a=aEnd)
+            h = self.motorM.CalculateMotionDist(dt, v=vEnd, a=aEnd)
             hG = self.hFire - h - self.motorM.Getposition()
         else:
             # print('слишком поздний вызов PulFireMove')
             return
-        htr = self.motorM.CalculateMottonDist(dt, v=1000, a=aEnd)
-        hMax = self.motorM.CalculateMottonDist(dt, v=Motor.v_max, a=aEnd)
+        htr = self.motorM.CalculateMotionDist(dt, v=1000, a=aEnd)
+        hMax = self.motorM.CalculateMotionDist(dt, v=Motor.v_max, a=aEnd)
         hMax *= 0.9
         hG *= 0.9
         if hMax < abs(hG):
             await self.motorM.Move(math.copysign(hMax, hG), v=Motor.v_max, a=aEnd)
         else:
-            v = self.motorM.chekV_A(v=1000, a=aEnd, x=htr)
+            v = self.motorM.checkV_A(v=1000, a=aEnd, x=htr)
             dh = htr - abs(hG)
             dv = math.sqrt(dh / htr) * v
             # print(dt, htr, v, dv)

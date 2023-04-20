@@ -23,7 +23,7 @@ def Save(data,
     print('data saved')
 
 
-def Exp_everage(x, t, tau=1):
+def Exp_average(x, t, tau=1):
     dt = 0
     i = 0
     tmax = t[-1]
@@ -41,10 +41,10 @@ def Exp_everage(x, t, tau=1):
 class Time():
     t0 = 0
     t = 0
-    isfreez = False
+    isfreeze = False
 
     def time():
-        if Time.isfreez:
+        if Time.isfreeze:
             return Time.t
         else:
             return time.time() - Time.t0
@@ -53,21 +53,21 @@ class Time():
         Time.t0 = time.time() - t0
         Time.t = t0
 
-    def freez():
+    def freeze():
         t = Time.time()
-        Time.isfreez = True
+        Time.isfreeze = True
 
-    def unfreez():
+    def unfreeze():
         Time.t0 = time.time() - Time.t
-        Time.isfreez = False
+        Time.isfreeze = False
 
     def sleep(dt):
-        if Time.isfreez:
+        if Time.isfreeze:
             Time.t += dt
         else:
             time.sleep(dt)
 
-class ReadingDevise():
+class ReadingDevice():
     def __init__(self, pr, name, weightCoef, zeroWeight=0):
         self.zeroWeight = zeroWeight
         self.weightCoef = weightCoef
@@ -97,7 +97,7 @@ class ReadingDevise():
         elif type == 'ever_std':
             return statistics.mean(x), statistics.stdev(x)
         elif type == 'exp':
-            return Exp_everage(x, t, tau)
+            return Exp_average(x, t, tau)
         else:
             print('reading devise error unpossible type')
 
