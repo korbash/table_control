@@ -487,6 +487,8 @@ async def mts():
     window.mtsButton.setEnabled(True)
 
 async def plStart():
+    if lock.locked():
+        return
     async with lock:
         async with pl:
             pass
