@@ -357,9 +357,9 @@ class PullWindow(QMainWindow):
         if 'motorM' in data:
             self.motionPlot.changeLine(data['time'], data['motorM'], 'motorM')  
         # indicators
-        if 'dv' in data:
+        if 'dv' in data and len(data['dv']) > 0:
             self.dvInd.setText(f"dv={data['dv'].iloc[-1]}")
-        if 'x' in data:
+        if 'x' in data and len(data['x']) > 0:
             self.xInd.setText(f"x={data['x'].iloc[-1]}") 
 
     
@@ -487,8 +487,9 @@ async def mts():
     window.mtsButton.setEnabled(True)
 
 async def plStart():
-    async with pl:
-        pass
+    async with lock:
+        async with pl:
+            pass
 
 @asyncSlot()
 async def start():
@@ -506,6 +507,7 @@ async def end():
 
 window.mtsButton.pressed.connect(mts)
 window.stopButton.pressed.connect(start)
+lock = asyncio.Lock()
 
 with loop:
     loop.run_forever()
