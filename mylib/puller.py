@@ -84,6 +84,10 @@ class Puller():
         await self.ms.motorM.MoveTo(0)
         print(f'mean reading time = {np.mean(self.dts)}')
         print(f'max reading time = {np.max(self.dts)}')
+        print(f'mean reading time2 = {np.mean(self.dts2)}')
+        print(f'max reading time2 = {np.max(self.dts2)}')
+        print(f'mean reading time3 = {np.mean(self.dts3)}')
+        print(f'max reading time3 = {np.max(self.dts3)}')
 
     def Save(self):
         save_data(self.data, name='pull_results.csv')
@@ -121,9 +125,10 @@ class Puller():
             await asyncio.sleep(0)
             param['motorM'] = self.ms.motorM.Getposition()
             await asyncio.sleep(0)
-            param['power'] = self.pm.ReadValue()
+            tFn05 = Time.time()
+            param['power'] = await self.pm.ReadValue()
             await asyncio.sleep(0)
-            param['tension'] = self.tg.ReadValue()
+            param['tension'] = await self.tg.ReadValue()
             await asyncio.sleep(0)
             tFn = Time.time()
             param['dt'] = tFn - tSt
@@ -132,6 +137,7 @@ class Puller():
             await asyncio.sleep(0)
             param['Le'] = self.ms.funL_x(param['x'])
             await asyncio.sleep(0)
+            tFn15 = Time.time()
             param['vL'], param['aL'] = self.ms.motorL.calcX_V_A()[1:3]
             await asyncio.sleep(0)
             param['vR'], param['aR'] = self.ms.motorR.calcX_V_A()[1:3]
@@ -143,7 +149,6 @@ class Puller():
             param['dv'] = self.dv
             param['hFire'] = self.ms.hFire
             await asyncio.sleep(0)
-            tFn15 = Time.time()
             param['tensionGoal'] = self.NewT
             tFn17 = Time.time()
             self.sg.NewPoint(param['tension'], param['time'])
@@ -160,8 +165,8 @@ class Puller():
             await asyncio.sleep(.3)
             # print(f'dt={tFn2 - tSt}')
             self.dts.append(tFn2 - tSt)
-            self.dts2.append(tFn2 - tFn15)
-            self.dts3.append(tFn2 - tFn17)
+            self.dts2.append(tFn05 - tSt)
+            self.dts3.append(tFn - tSt)
 
     def Tprog(self, tau=0):
         return self.Ttrend * tau + self.data.loc[len(self.data) - 1,
@@ -198,7 +203,7 @@ class Puller():
         i = 1
         w = -100
         while abs(wide - w) > dw:
-            w = self.tg.ReadValue(tau=tau)
+            w = await self.tg.ReadValue(tau=tau)
             dx = (wide - w) / k
             if not quiet:
                 print('w= ', w, ', dw= ', w - wide, ', dx=  ', dx)
@@ -208,7 +213,7 @@ class Puller():
             while self.ms.motorR.IsInMotion():
                 pass
             Time.sleep(0.1)
-        w = self.tg.ReadValue(tau=tau)
+        w = await self.tg.ReadValue(tau=tau)
         print('SetW finish value=', end=' ')
         print(w)
         yield w

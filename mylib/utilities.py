@@ -1,7 +1,7 @@
 import time
 import math
 import numpy as np
-import statistics
+import asyncio
 
 
 def Save(data,
@@ -29,13 +29,19 @@ def Exp_average(x, t, tau=1):
     tmax = t[-1]
     xsr = 0
     csum = 0
-    while (dt < tau * 10 and i < len(t)):
-        i += 1
-        dt = tmax - t[-i]
-        c = math.exp(-dt / tau)
-        xsr += x[-i] * c
-        csum += c
-    xsr = xsr / csum
+    dt = tmax - t[::-1]
+    dt = dt[dt < tau * 100]
+    c = np.exp(-dt / tau)
+    xsr = np.sum(x[::-1] * c) / np.sum(c)
+
+
+    # while (dt < tau * 10 and i < len(t)):
+    #     i += 1
+    #     dt = tmax - t[-i]
+    #     c = np.exp(-dt / tau)
+    #     xsr += x[-i] * c
+    #     csum += c
+    # xsr = xsr / csum
     return xsr
 
 class Time():
@@ -80,23 +86,36 @@ class ReadingDevice():
     def __del__(self):
         del self.pr
 
-    def ReadValue(self, tau=0, type='ever'):
+    async def ReadValue(self, tau=0, type='ever'):
+        if tau==0:
+            await asyncio.sleep(0)
+            x = self.read()
+            await asyncio.sleep(0)
+            return self.weightCoef * x - self.zeroWeight
         x = []
         t = []
+        await asyncio.sleep(0)
         t0 = Time.time()
+        await asyncio.sleep(0)
         t1 = t0
         while t1 - t0 <= tau:
+            await asyncio.sleep(0)
             x += [self.read()]
             t1 = Time.time()
             t += [t1]
         x = np.array(x)
         t = np.array(t)
+        await asyncio.sleep(0)
         x = x * self.weightCoef - self.zeroWeight
+        await asyncio.sleep(0)
         if type == 'ever':
-            return statistics.mean(x)
+            await asyncio.sleep(0)
+            return np.mean(x)
         elif type == 'ever_std':
-            return statistics.mean(x), statistics.stdev(x)
+            await asyncio.sleep(0)
+            return np.mean(x), np.std(x)
         elif type == 'exp':
+            await asyncio.sleep(0)
             return Exp_average(x, t, tau)
         else:
             print('reading devise error unpossible type')
@@ -105,8 +124,8 @@ class ReadingDevice():
         self.zeroCoef = real_weight / self.ReadValue(tau=tau)
         return self.zeroCoef
 
-    def SetZeroWeight(self, tau=10, T=0):
-        Tnew, dT = self.ReadValue(tau=tau, type='ever_std')
+    async def SetZeroWeight(self, tau=10, T=0):
+        Tnew, dT = await self.ReadValue(tau=tau, type='ever_std')
         self.zeroWeight += Tnew - T
         self.pogr = dT
         return Tnew - T

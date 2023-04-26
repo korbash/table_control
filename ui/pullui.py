@@ -461,11 +461,12 @@ window.show()
 pl = Puller(lw=window.lw, rw=window.rw)
 pl.win = window
 
-def zeroTs():
+@asyncSlot()
+async def zeroTs():
     while True:
-        pl.tg.SetZeroWeight(tau=3)
-        pl.tg.SetZeroWeight(tau=3)
-        res = pl.tg.SetZeroWeight(tau=4) 
+        await pl.tg.SetZeroWeight(tau=3)
+        await pl.tg.SetZeroWeight(tau=3)
+        res = await pl.tg.SetZeroWeight(tau=4) 
 
         zd = ZeroDialog(res)
         if zd.exec():
