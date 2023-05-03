@@ -211,8 +211,8 @@ class PullWindow(QMainWindow):
         self.rw = 15
         self.lw = 25
 
-        self.Kp = .0012
-        self.Ki = 5e-6
+        self.Kp = .00061
+        self.Ki = 5.4e-6
         self.Kd = 0
 
         self.ended=False
