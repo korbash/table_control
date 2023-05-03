@@ -101,8 +101,8 @@ class PIDWindow(QDialog):
         labelLayout.addWidget(QLabel('Ki'))
         labelLayout.addWidget(QLabel('Kd'))
 
-        self.pSlider = CustomSlider(min=0, max=.01, orientation=Qt.Orientation.Horizontal, value=self.Kp, pow=7)
-        self.iSlider = CustomSlider(min=0, max=1, orientation=Qt.Orientation.Horizontal, value=self.Ki, pow=7)
+        self.pSlider = CustomSlider(min=0, max=.001, orientation=Qt.Orientation.Horizontal, value=self.Kp, pow=7)
+        self.iSlider = CustomSlider(min=0, max=1e-5, orientation=Qt.Orientation.Horizontal, value=self.Ki, pow=7)
         self.dSlider = CustomSlider(min=-1, max=1, orientation=Qt.Orientation.Horizontal, value=self.Kd, pow=7)
         sliderLayout.addWidget(self.pSlider)
         sliderLayout.addWidget(self.iSlider)
@@ -140,7 +140,7 @@ class PIDWindow(QDialog):
             self.pEdit.setText(str(Kp))
         else:
             Kp = float(self.pEdit.text())
-            self.pSlider.setValue(int(Kp))
+            self.pSlider.setValue(Kp)
         self.Kp = Kp
 
     def updateKi(self, Ki=None):
@@ -148,7 +148,7 @@ class PIDWindow(QDialog):
             self.iEdit.setText(str(Ki))
         else:
             Ki = float(self.iEdit.text())
-            self.iSlider.setValue(int(Ki))
+            self.iSlider.setValue(Ki)
         self.Ki = Ki
 
     def updateKd(self, Kd=None):
@@ -156,7 +156,7 @@ class PIDWindow(QDialog):
             self.dEdit.setText(str(Kd))
         else:
             Kd = float(self.dEdit.text())
-            self.dSlider.setValue(int(Kd))
+            self.dSlider.setValue(Kd)
         self.Kd = Kd
 
 class TensWindow(QDialog):
@@ -205,15 +205,15 @@ class PullWindow(QMainWindow):
         self.a = 5
         self.T0 = 10
         self.w = 100
-        self.burnerH = 0
-        self.dhKof = 1
+        self.burnerH = 1.25
+        self.dhKof = 3.5
 
         self.rw = 15
         self.lw = 25
 
-        self.Kp = .0005
-        self.Ki = .05
-        self.Kd = -.02
+        self.Kp = .0012
+        self.Ki = 5e-6
+        self.Kd = 0
 
         self.ended=False
         self.burnPosFl = False
@@ -271,7 +271,7 @@ class PullWindow(QMainWindow):
         self.bhInput = QLineEdit(str(self.burnerH))
         self.bhInput.setFixedWidth(100)
         self.bhInput.setValidator(getDoubleValidator())
-        self.dhSlider = CustomSlider(min=0, max=3, orientation=Qt.Orientation.Horizontal, value=self.dhKof)
+        self.dhSlider = CustomSlider(min=0, max=4, orientation=Qt.Orientation.Horizontal, value=self.dhKof)
         self.dhInput = QLineEdit(str(self.dhKof))
         self.dhInput.setFixedWidth(100)
         self.dhInput.setValidator(getDoubleValidator())
