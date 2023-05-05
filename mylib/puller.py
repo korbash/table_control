@@ -128,6 +128,7 @@ class Puller():
             tFn05 = Time.time()
             param['power'] = await self.pm.ReadValue()
             await asyncio.sleep(0)
+            tFn07 = Time.time()
             param['tension'] = await self.tg.ReadValue()
             await asyncio.sleep(0)
             tFn = Time.time()
@@ -165,8 +166,8 @@ class Puller():
             await asyncio.sleep(.3)
             # print(f'dt={tFn2 - tSt}')
             self.dts.append(tFn2 - tSt)
-            self.dts2.append(tFn05 - tSt)
-            self.dts3.append(tFn - tSt)
+            self.dts2.append(tFn07 - tFn05)
+            self.dts3.append(tFn - tFn07)
 
     def Tprog(self, tau=0):
         return self.Ttrend * tau + self.data.loc[len(self.data) - 1,
@@ -254,7 +255,7 @@ class Puller():
             r0 = self.ms.funR_x(0)
             # r_max = self.ms.funR_x(self.ms.xMax)
             r = self.ms.funR_x(x)
-            t = T * r**2 / r0**2
+            t = T * np.abs(r/ r0)
             self.NewT = t
             if self.sg.level is not None:
                 self.dv = self.obrSvas(t, Ki, Kp, Kd)
